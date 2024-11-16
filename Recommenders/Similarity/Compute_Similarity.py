@@ -100,10 +100,12 @@ class Compute_Similarity:
 
                 try:
                     from Recommenders.Similarity.Cython.Compute_Similarity_Cython import Compute_Similarity_Cython
+                    print("Cython module imported successfully.")
                     self.compute_similarity_object = Compute_Similarity_Cython(dataMatrix, **args)
 
-                except ImportError:
+                except ImportError as e:
                     print("Unable to load Cython Compute_Similarity, reverting to Python")
+                    print(f"ImportError: {e}")
                     self.compute_similarity_object = Compute_Similarity_Python(dataMatrix, **args)
 
 

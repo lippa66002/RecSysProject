@@ -12,7 +12,6 @@ This script is called in a subprocess and compiles the cython source file provid
 python compile_script.py filename.pyx build_ext --inplace
 """
 
-
 try:
     from setuptools import setup
     from setuptools import Extension
@@ -20,10 +19,8 @@ except ImportError:
     from distutils.core import setup
     from distutils.extension import Extension
 
-
 from Cython.Distutils import build_ext
-import numpy, sys, re
-
+import numpy, sys, re, os
 
 if len(sys.argv) != 4:
     raise ValueError("Wrong number of parameters received. Expected 4, got {}".format(sys.argv))
@@ -34,8 +31,8 @@ fileToCompile = sys.argv[1]
 # Remove the argument from sys argv in order for it to contain only what setup needs
 del sys.argv[1]
 
-extensionName = re.sub("\.pyx", "", fileToCompile)
-
+# Convert file path to module name by replacing slashes with dots and removing the .pyx extension
+extensionName = re.sub(r'\.pyx$', '', fileToCompile.replace(os.path.sep, '.').replace('/', '.').replace('\\', '.'))
 
 ext_modules = Extension(extensionName,
                 [fileToCompile],
