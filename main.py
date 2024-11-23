@@ -177,7 +177,7 @@ print("  Value Validation: ", optuna_study.best_trial.value)
 '''
 
 
-def objective_function_funksvd(optuna_trial):
+def objective_function_SLIMbpr(optuna_trial):
     # Earlystopping hyperparameters available in the framework
     full_hyperp = {"validation_every_n": 5,
                    "stop_on_validation": True,
@@ -190,14 +190,11 @@ def objective_function_funksvd(optuna_trial):
                    }
 
     start_time = time.time()
-    recommender_instance = MatrixFactorization_SVDpp_Cython(URM_train)
-    recommender_instance.fit(num_factors=optuna_trial.suggest_int("num_factors", 1, 200),
-                             sgd_mode=optuna_trial.suggest_categorical("sgd_mode", ["sgd", "adagrad", "adam"]),
-                             batch_size=optuna_trial.suggest_categorical("batch_size",
-                                                                         [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]),
-                             item_reg=optuna_trial.suggest_float("item_reg", 1e-5, 1e-2, log=True),
-                             user_reg=optuna_trial.suggest_float("user_reg", 1e-5, 1e-2, log=True),
-                             learning_rate=optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True),
+    recommender_instance = SLIM_BPR_Cython(URM_train)
+    recommender_instance.fit(topK=optuna_trial.suggest_int("topK", 1, 200),
+                             lambda_i=optuna_trial.suggest_float("lambda_i",0.0001,0.1),
+                             lambda_j=optuna_trial.suggest_float("lambda_j", 1e-5, 1e-1),
+                             learning_rate=optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1),
                              **full_hyperp)
 
     # Add the number of epochs selected by earlystopping as a "user attribute" of the optuna trial
@@ -214,7 +211,7 @@ optuna_study = optuna.create_study(direction="maximize")
 
 save_results = SaveResults()
 
-optuna_study.optimize(objective_function_funksvd,
+optuna_study.optimize(objective_function_SLIMbpr,
                       callbacks=[save_results],
                       n_trials=70)
 recom = SLIMElasticNetRecommender(URM_all)
