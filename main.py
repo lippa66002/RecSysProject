@@ -118,7 +118,7 @@ optuna_study.best_trial.params
 save_results.results_df
 
 
-    
+  '''
 def objective_function_SLIM(optuna_trial):
 
 
@@ -149,7 +149,7 @@ complete_trials = [t for t in optuna_study.trials if t.state == optuna.trial.Tri
 optuna_study.best_trial
 optuna_study.best_trial.params
 save_results.results_df
-
+'''
 def _feature_importance(result_df):
     regr = RandomForestRegressor(max_depth=2)
 
@@ -174,11 +174,11 @@ _feature_importance(results_df)
 print("Best trial:")
 print("  Value Validation: ", optuna_study.best_trial.value)
 
-'''
+
 
 
 def objective_function_SLIMbpr(optuna_trial):
-    # Earlystopping hyperparameters available in the framework
+     #Earlystopping hyperparameters available in the framework
     full_hyperp = {"validation_every_n": 5,
                    "stop_on_validation": True,
                    "evaluator_object": evaluator_validation,
@@ -214,8 +214,9 @@ save_results = SaveResults()
 optuna_study.optimize(objective_function_SLIMbpr,
                       callbacks=[save_results],
                       n_trials=70)
+'''
 recom = SLIMElasticNetRecommender(URM_all)
-recom.fit(alpha=0.0006256335445567536, topK=272, l1_ratio=0.000431768858366946)
+recom.fit(alpha=0.000668744683648383, topK=866, l1_ratio=0.06555885556647892)
 cutoff = 10  # Numero di raccomandazioni da generare
 recommendations_list = []
 
