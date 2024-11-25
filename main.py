@@ -123,7 +123,7 @@ def objective_function_SLIM(optuna_trial):
 
 
     recommender_instance = SLIMElasticNetRecommender(URM_trainval)
-    full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 1e-4, 1e-1),
+    full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 1e-5, 1e-3),
                    "topK": optuna_trial.suggest_int("topK", 5, 1000),
                    "l1_ratio": optuna_trial.suggest_float("l1_ratio", 1e-4, 1),
                    }
