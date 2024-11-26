@@ -148,7 +148,7 @@ optuna_study.best_trial.params
 save_results.results_df
 
 
-'''
+
 def objective_function_SLIM(optuna_trial):
 
 
@@ -179,7 +179,7 @@ complete_trials = [t for t in optuna_study.trials if t.state == optuna.trial.Tri
 optuna_study.best_trial
 optuna_study.best_trial.params
 save_results.results_df
-'''
+
 def _feature_importance(result_df):
     regr = RandomForestRegressor(max_depth=2)
 
