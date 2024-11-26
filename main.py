@@ -21,6 +21,7 @@ from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 import Optimize
 import time
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
+from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 # Press Maiusc+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
@@ -210,7 +211,31 @@ print("  Value Validation: ", optuna_study.best_trial.value)
 '''
 recom = SLIMElasticNetRecommender(URM_all)
 recom.fit(alpha= 0.0002021210695683939, topK= 856, l1_ratio= 0.23722934371355184)
+graphrec = RP3betaRecommender(URM_trainval)
+graphrec.fit(topK= 12, alpha= 0.5769111396825488, beta= 0.0019321798490027353)
 cutoff = 10  # Numero di raccomandazioni da generare
+
+
+def obj_hybrid(optuna_trial):
+    scoreshybridrecommender = ScoresHybridRecommender(URM_trainval, recom, graphrec)
+    hyper = {"alpha": optuna_trial.suggest_float("alpha", 0.4, 1)}
+    scoreshybridrecommender.fit(hyper)
+    result_df, _ = evaluator_validation.evaluateRecommender(scoreshybridrecommender)
+    return result_df.loc[10, "MAP"]
+
+optuna_study = optuna.create_study(direction="maximize")
+save_results = SaveResults()
+optuna_study.optimize(objective_function_SLIM,
+                      callbacks=[save_results],
+                      n_trials=70)
+pruned_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.PRUNED]
+complete_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+optuna_study.best_trial
+optuna_study.best_trial.params
+save_results.results_df
+
+
+
 recommendations_list = []
 
 for user_id in users["user_id"]:
