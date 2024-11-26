@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from Optimize.SaveResults import SaveResults
 from Optimize.slim import objective_function_SLIM
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
+from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import pandas as pd
 import scipy.sparse as sps
@@ -71,8 +72,37 @@ URM_train, URM_validation = split_train_in_two_percentage_global_sample(URM_trai
 
 
 evaluator_validation = EvaluatorHoldout(URM_test, cutoff_list=[10])
-
 '''
+def objective_function_graph(optuna_trial):
+    recomm = RP3betaRecommender(URM_trainval)
+    full_hyperp = {
+                   "topK": optuna_trial.suggest_int("topK", 5, 1000),
+                   "beta": optuna_trial.suggest_float("beta", 0, 1),
+        "alpha": optuna_trial.suggest_float("alpha",0,1.5)}
+    recomm.fit(**full_hyperp)
+
+    result_df, _ = evaluator_validation.evaluateRecommender(recomm)
+
+    return result_df.loc[10]["MAP"]
+
+
+optuna_study = optuna.create_study(direction="maximize")
+
+save_results = SaveResults()
+
+optuna_study.optimize(objective_function_graph,
+                      callbacks=[save_results],
+                      n_trials=80)
+pruned_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.PRUNED]
+complete_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+optuna_study.best_trial
+optuna_study.best_trial.params
+save_results.results_df
+
+
+
+
+
 
 def objective_function_KNN_similarities(optuna_trial):
     recommender_instance = ItemKNN_CFCBF_Hybrid_Recommender(URM_trainval,ICM_all)
@@ -118,14 +148,14 @@ optuna_study.best_trial.params
 save_results.results_df
 
 
-  '''
+'''
 def objective_function_SLIM(optuna_trial):
 
 
     recommender_instance = SLIMElasticNetRecommender(URM_trainval)
     full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 1e-5, 1e-3),
                    "topK": optuna_trial.suggest_int("topK", 5, 1000),
-                   "l1_ratio": optuna_trial.suggest_float("l1_ratio", 1e-4, 1),
+                   "l1_ratio": optuna_trial.suggest_float("l1_ratio", 1e-3, 0.6),
                    }
     recommender_instance.fit(**full_hyperp)
     #epochs = recommender_instance.get_early_stopping_final_epochs_dict()["epochs"]
@@ -177,46 +207,9 @@ print("  Value Validation: ", optuna_study.best_trial.value)
 
 
 
-def objective_function_SLIMbpr(optuna_trial):
-     #Earlystopping hyperparameters available in the framework
-    full_hyperp = {"validation_every_n": 5,
-                   "stop_on_validation": True,
-                   "evaluator_object": evaluator_validation,
-                   "lower_validations_allowed": 5,  # Higher values will result in a more "patient" earlystopping
-                   "validation_metric": "MAP",
-
-                   # MAX number of epochs (usually 500)
-                   "epochs": 500,
-                   }
-
-    start_time = time.time()
-    recommender_instance = SLIM_BPR_Cython(URM_train)
-    recommender_instance.fit(topK=optuna_trial.suggest_int("topK", 1, 200),
-                             lambda_i=optuna_trial.suggest_float("lambda_i",0.0001,0.1),
-                             lambda_j=optuna_trial.suggest_float("lambda_j", 1e-5, 1e-1),
-                             learning_rate=optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1),
-                             **full_hyperp)
-
-    # Add the number of epochs selected by earlystopping as a "user attribute" of the optuna trial
-    epochs = recommender_instance.get_early_stopping_final_epochs_dict()["epochs"]
-    optuna_trial.set_user_attr("epochs", epochs)
-    optuna_trial.set_user_attr("train_time (min)", (time.time() - start_time) / 60)
-
-    result_df, _ = evaluator_validation.evaluateRecommender(recommender_instance)
-
-    return result_df.loc[10]["MAP"]
-
-
-optuna_study = optuna.create_study(direction="maximize")
-
-save_results = SaveResults()
-
-optuna_study.optimize(objective_function_SLIMbpr,
-                      callbacks=[save_results],
-                      n_trials=70)
 '''
 recom = SLIMElasticNetRecommender(URM_all)
-recom.fit(alpha=0.000668744683648383, topK=866, l1_ratio=0.06555885556647892)
+recom.fit(alpha= 0.0002021210695683939, topK= 856, l1_ratio= 0.23722934371355184)
 cutoff = 10  # Numero di raccomandazioni da generare
 recommendations_list = []
 
