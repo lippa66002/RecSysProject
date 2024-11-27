@@ -7,6 +7,7 @@ from Optimize.SaveResults import SaveResults
 from Optimize.slim import objective_function_SLIM
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
+from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import pandas as pd
 import scipy.sparse as sps
@@ -22,6 +23,7 @@ import Optimize
 import time
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
+from prova import cutoff
 
 # Press Maiusc+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
@@ -213,15 +215,16 @@ recom = SLIMElasticNetRecommender(URM_all)
 recom.fit(alpha= 0.0002021210695683939, topK= 856, l1_ratio= 0.23722934371355184)
 graphrec = RP3betaRecommender(URM_trainval)
 graphrec.fit(topK= 12, alpha= 0.5769111396825488, beta= 0.0019321798490027353)
-cutoff = 10  # Numero di raccomandazioni da generare
 
 
-def obj_hybrid(optuna_trial):
-    scoreshybridrecommender = ScoresHybridRecommender(URM_trainval, recom, graphrec)
-    hyper = {"alpha": optuna_trial.suggest_float("alpha", 0.4, 1)}
-    scoreshybridrecommender.fit(hyper)
-    result_df, _ = evaluator_validation.evaluateRecommender(scoreshybridrecommender)
-    return result_df.loc[10, "MAP"]
+
+def  obj_hybrid(optuna_trial):
+    print("helloworld")
+    alpha = optuna_trial.suggest_float("alpha", 0.1, 0.9)
+    recommender_object = HybridOptunable2(URM_trainval)
+    recommender_object.fit(alpha,recom,graphrec )
+    result_df, _ = evaluator_validation.evaluateRecommender(recommender_object)
+    return result_df.loc[10][ "MAP"]
 
 optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
@@ -237,7 +240,7 @@ save_results.results_df
 
 
 recommendations_list = []
-
+cutoff = 10
 for user_id in users["user_id"]:
     recommendations = recom.recommend(user_id, cutoff=cutoff)
     recommendations_list.append([user_id, recommendations])
