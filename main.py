@@ -228,7 +228,7 @@ def  obj_hybrid(optuna_trial):
 
 optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
-optuna_study.optimize(objective_function_SLIM,
+optuna_study.optimize(obj_hybrid,
                       callbacks=[save_results],
                       n_trials=70)
 pruned_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.PRUNED]
