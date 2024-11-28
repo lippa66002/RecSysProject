@@ -8,4 +8,4 @@ class SaveResults(object):
         hyperparam_dict = optuna_trial.params.copy()
         hyperparam_dict["result"] = optuna_trial.values[0]
 
-        self.results_df = self.results_df.append(hyperparam_dict, ignore_index=True)
+        self.results_df = pd.concat([self.results_df, pd.DataFrame([hyperparam_dict])], ignore_index=True)
