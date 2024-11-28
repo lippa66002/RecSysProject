@@ -31,6 +31,9 @@ optuna_params = ModelController.optunizer(ModelName.SLIM_ElasticNet)
 
 recommender_instance = ModelController.generate_model(ModelName.SLIM_ElasticNet, optuna_params, URM_train_validation)
 
+recommender_instance.save_model(folder_path="_saved_models", file_name = ModelName.SLIM_ElasticNet)
+
+
 result_df, _ = evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)
 

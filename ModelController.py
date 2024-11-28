@@ -6,7 +6,7 @@ from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import optuna
 from ModelNames import ModelName
 
-def generate_model(model_name, optuna_hpp, URM_train, ICM_all=None ):
+def generate_model(model_name, optuna_hpp, URM_train, ICM_all=None):
 
     if model_name == ModelName.SLIM_ElasticNet:
         model = SLIMElasticNetRecommender(URM_train)
@@ -22,7 +22,6 @@ def generate_model(model_name, optuna_hpp, URM_train, ICM_all=None ):
         model.fit(**optuna_hpp)
     else:
         raise ValueError("Model not found")
-
 
     return model
 
