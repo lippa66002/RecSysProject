@@ -1,5 +1,6 @@
 import DataHandler
 import ModelController
+from ModelNames import ModelName
 from Data_manager.split_functions.split_train_validation_random_holdout import split_train_in_two_percentage_global_sample
 from Evaluation.Evaluator import EvaluatorHoldout
 import optuna
@@ -26,9 +27,9 @@ URM_train, URM_validation = split_train_in_two_percentage_global_sample(URM_trai
 evaluator_validation = EvaluatorHoldout(URM_validation, cutoff_list=[10])
 evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[10])
 
-optuna_params = ModelController.optunizer("SLIM_ElasticNet")
+optuna_params = ModelController.optunizer(ModelName.SLIM_ElasticNet)
 
-recommender_instance = ModelController.generate_model("SLIM_ElasticNet", optuna_params, URM_train_validation)
+recommender_instance = ModelController.generate_model(ModelName.SLIM_ElasticNet, optuna_params, URM_train_validation)
 
 result_df, _ = evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)
