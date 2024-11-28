@@ -1,33 +1,14 @@
-
 import optuna
-from scipy.sparse import csr_matrix
-from sklearn.ensemble import RandomForestRegressor
-import matplotlib.pyplot as plt
+
 from Optimize.SaveResults import SaveResults
-from Optimize.slim import objective_function_SLIM
-from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
-from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import pandas as pd
 import scipy.sparse as sps
 from Evaluation.Evaluator import EvaluatorHoldout
 from Data_manager.split_functions.split_train_validation_random_holdout import split_train_in_two_percentage_global_sample
-from Data_manager.Movielens.Movielens1MReader import Movielens1MReader
-from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
-from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
-from Recommenders.MatrixFactorization.Cython.MatrixFactorization_Cython import MatrixFactorization_SVDpp_Cython
-from Recommenders.MatrixFactorization.PyTorch.MF_MSE_PyTorch import MF_MSE_PyTorch
-from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
-import Optimize
-import time
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
-from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
-from prova import cutoff
-
-# Press Maiusc+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
+from prova import evaluator_validation
 
 URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",
                                 sep=",",
@@ -39,9 +20,6 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
                                 sep=",",
                                 dtype={0:int, 1:int, 2:float},
                                 engine='python')
-
-
-
 
 n_interactions = len(URM_all_dataframe)
 mapped_id, original_id = pd.factorize(URM_all_dataframe["user_id"].unique())
@@ -63,7 +41,6 @@ URM_all = sps.coo_matrix((URM_all_dataframe["data"].values,
                           (URM_all_dataframe["user_id"].values, URM_all_dataframe["item_id"].values)))
 n_items = ICM["item_id"].max() + 1
 n_features = ICM["feature_id"].max() + 1
-
 ICM_all = sps.coo_matrix((ICM["data"].values, (ICM["item_id"].values, ICM["feature_id"].values)) , shape=(n_items, n_features))
 
 URM_all.tocsr()
@@ -71,11 +48,12 @@ ICM_all.tocsr()
 
 URM_trainval, URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage = 0.8)
 URM_train, URM_validation = split_train_in_two_percentage_global_sample(URM_trainval, train_percentage = 0.8)
+evaluator_validation = EvaluatorHoldout(URM_test, cutoff_list=[10])
 
-
+'''
 
 evaluator_validation = EvaluatorHoldout(URM_test, cutoff_list=[10])
-'''
+
 def objective_function_graph(optuna_trial):
     recomm = RP3betaRecommender(URM_trainval)
     full_hyperp = {
@@ -208,9 +186,9 @@ print("Best trial:")
 print("  Value Validation: ", optuna_study.best_trial.value)
 
 
-
-
 '''
+
+
 recom = SLIMElasticNetRecommender(URM_trainval)
 recom.fit(alpha= 0.0002021210695683939, topK= 856, l1_ratio= 0.23722934371355184)
 graphrec = RP3betaRecommender(URM_trainval)
@@ -222,7 +200,7 @@ def  obj_hybrid(optuna_trial):
     print("helloworld")
     alpha = optuna_trial.suggest_float("alpha", 0.1, 0.9)
     recommender_object = HybridOptunable2(URM_trainval)
-    recommender_object.fit(alpha,recom,graphrec )
+    recommender_object.fit(alpha,recom,graphrec)
     result_df, _ = evaluator_validation.evaluateRecommender(recommender_object)
     return result_df.loc[10][ "MAP"]
 
