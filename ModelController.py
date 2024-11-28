@@ -1,3 +1,6 @@
+from Data_manager.split_functions.split_train_validation_random_holdout import \
+    split_train_in_two_percentage_global_sample
+from Evaluation.Evaluator import EvaluatorHoldout
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Optimize.SaveResults import SaveResults
 from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
@@ -6,106 +9,118 @@ from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import optuna
 from ModelNames import ModelName
 
-def generate_model(model_name, optuna_hpp, URM_train, ICM_all=None):
 
-    if model_name == ModelName.SLIM_ElasticNet:
-        model = SLIMElasticNetRecommender(URM_train)
-        model.fit(**optuna_hpp)
-    elif model_name == ModelName.ItemKNNCFRecommender:
-        model = ItemKNNCFRecommender(URM_train)
-        model.fit(**optuna_hpp)
-    elif model_name == ModelName.RP3betaRecommender:
-        model = RP3betaRecommender(URM_train)
-        model.fit(**optuna_hpp)
-    elif model_name == ModelName.ContentBasedRecommender:
-        model = ItemKNNCBFRecommender(URM_train, ICM_all)
-        model.fit(**optuna_hpp)
-    else:
-        raise ValueError("Model not found")
+class ModelController:
 
-    return model
+    def __init__(self, URM_all, ICM_all):
+        self.URM_all = URM_all
+        self.ICM_all = ICM_all
+        self.URM_train_validation, self.URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage=0.8)
+        self.URM_train, self.URM_validation = split_train_in_two_percentage_global_sample(self.URM_train_validation,
+                                                                                train_percentage=0.8)
+        self.evaluator_validation = EvaluatorHoldout(self.URM_validation, cutoff_list=[10])
+        self.evaluator_test = EvaluatorHoldout(self.URM_test, cutoff_list=[10])
 
-def optunizer(model_name):
+    def generate_model(self, model_name, optuna_hpp):
 
-    if model_name == ModelName.SLIM_ElasticNet:
-        obj_func = objective_function_SLIM
-    elif model_name == ModelName.ItemKNNCFRecommender:
-        obj_func = objective_function_KNN_similarities
-    elif model_name == ModelName.RP3betaRecommender:
-        obj_func = objective_function_graph
-    else:
-        raise ValueError("Model not found")
+        if model_name == ModelName.SLIM_ElasticNet:
+            model = SLIMElasticNetRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.ItemKNNCFRecommender:
+            model = ItemKNNCFRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.RP3betaRecommender:
+            model = RP3betaRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.ContentBasedRecommender:
+            model = ItemKNNCBFRecommender(self.URM_train, self.ICM_all)
+            model.fit(**optuna_hpp)
+        else:
+            raise ValueError("Model not found")
 
-    optuna_study = optuna.create_study(direction="maximize")
+        return model
 
-    save_results = SaveResults()
+    def optunizer(self, model_name):
 
-    optuna_study.optimize(obj_func,
-                          callbacks=[save_results],
-                          n_trials=50)
+        if model_name == ModelName.SLIM_ElasticNet:
+            obj_func = self.objective_function_SLIM
+        elif model_name == ModelName.ItemKNNCFRecommender:
+            obj_func = self.objective_function_KNN_similarities
+        elif model_name == ModelName.RP3betaRecommender:
+            obj_func = self.objective_function_graph
+        else:
+            raise ValueError("Model not found")
 
-    print(save_results.results_df)
-    print(optuna_study.best_trial.params)
+        optuna_study = optuna.create_study(direction="maximize")
 
-    return optuna_study.best_trial.params
+        save_results = SaveResults()
 
-def objective_function_KNN_similarities(optuna_trial, URM_train, evaluator_validation):
+        optuna_study.optimize(obj_func,
+                              callbacks=[save_results],
+                              n_trials=50)
 
-    recommender_instance = ItemKNNCFRecommender(URM_train)
-    similarity = optuna_trial.suggest_categorical("similarity",
-                                                  ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky',
-                                                   'euclidean'])
+        print(save_results.results_df)
+        print(optuna_study.best_trial.params)
 
-    full_hyperp = {"similarity": similarity,
-                   "topK": optuna_trial.suggest_int("topK", 5, 1000),
-                   "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
-                   }
+        return optuna_study.best_trial.params
 
-    if similarity == "asymmetric":
-        full_hyperp["asymmetric_alpha"] = optuna_trial.suggest_float("asymmetric_alpha", 0, 2, log=False)
-        full_hyperp["normalize"] = True
+    def objective_function_KNN_similarities(self, optuna_trial):
 
-    elif similarity == "tversky":
-        full_hyperp["tversky_alpha"] = optuna_trial.suggest_float("tversky_alpha", 0, 2, log=False)
-        full_hyperp["tversky_beta"] = optuna_trial.suggest_float("tversky_beta", 0, 2, log=False)
-        full_hyperp["normalize"] = True
+        recommender_instance = ItemKNNCFRecommender(self.URM_train)
+        similarity = optuna_trial.suggest_categorical("similarity",
+                                                      ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky',
+                                                       'euclidean'])
 
-    elif similarity == "euclidean":
-        full_hyperp["normalize_avg_row"] = optuna_trial.suggest_categorical("normalize_avg_row", [True, False])
-        full_hyperp["similarity_from_distance_mode"] = optuna_trial.suggest_categorical(
-            "similarity_from_distance_mode", ["lin", "log", "exp"])
-        full_hyperp["normalize"] = optuna_trial.suggest_categorical("normalize", [True, False])
+        full_hyperp = {"similarity": similarity,
+                       "topK": optuna_trial.suggest_int("topK", 5, 1000),
+                       "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
+                       }
 
-    recommender_instance.fit(**full_hyperp)
+        if similarity == "asymmetric":
+            full_hyperp["asymmetric_alpha"] = optuna_trial.suggest_float("asymmetric_alpha", 0, 2, log=False)
+            full_hyperp["normalize"] = True
 
-    result_df, _ = evaluator_validation.evaluateRecommender(recommender_instance)
+        elif similarity == "tversky":
+            full_hyperp["tversky_alpha"] = optuna_trial.suggest_float("tversky_alpha", 0, 2, log=False)
+            full_hyperp["tversky_beta"] = optuna_trial.suggest_float("tversky_beta", 0, 2, log=False)
+            full_hyperp["normalize"] = True
 
-    return result_df.loc[10]["MAP"]
+        elif similarity == "euclidean":
+            full_hyperp["normalize_avg_row"] = optuna_trial.suggest_categorical("normalize_avg_row", [True, False])
+            full_hyperp["similarity_from_distance_mode"] = optuna_trial.suggest_categorical(
+                "similarity_from_distance_mode", ["lin", "log", "exp"])
+            full_hyperp["normalize"] = optuna_trial.suggest_categorical("normalize", [True, False])
 
-def objective_function_SLIM(optuna_trial, URM_train, evaluator_validation):
+        recommender_instance.fit(**full_hyperp)
 
-    recommender_instance = SLIMElasticNetRecommender(URM_train)
-    full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 1e-5, 1e-3),
-                   "topK": optuna_trial.suggest_int("topK", 5, 1000),
-                   "l1_ratio": optuna_trial.suggest_float("l1_ratio", 1e-3, 0.6),
-                   }
-    recommender_instance.fit(**full_hyperp)
-    # epochs = recommender_instance.get_early_stopping_final_epochs_dict()["epochs"]
-    # optuna_trial.set_user_attr("epochs", epochs)
-    # optuna_trial.set_user_attr("train_time (min)", (time.time() - start_time) / 60)
-    result_df, _ = evaluator_validation.evaluateRecommender(recommender_instance)
+        result_df, _ = self.evaluator_validation.evaluateRecommender(recommender_instance)
 
-    return result_df.loc[10]["MAP"]
+        return result_df.loc[10]["MAP"]
 
-def objective_function_graph(optuna_trial, URM_train, evaluator_validation):
-    recomm = RP3betaRecommender(URM_train)
-    full_hyperp = {
-        "topK": optuna_trial.suggest_int("topK", 5, 1000),
-        "beta": optuna_trial.suggest_float("beta", 0, 1),
-        "alpha": optuna_trial.suggest_float("alpha", 0, 1.5)}
-    recomm.fit(**full_hyperp)
+    def objective_function_SLIM(self, optuna_trial):
 
-    result_df, _ = evaluator_validation.evaluateRecommender(recomm)
+        recommender_instance = SLIMElasticNetRecommender(self.URM_train)
+        full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 1e-5, 1e-3),
+                       "topK": optuna_trial.suggest_int("topK", 5, 1000),
+                       "l1_ratio": optuna_trial.suggest_float("l1_ratio", 1e-3, 0.6),
+                       }
+        recommender_instance.fit(**full_hyperp)
+        # epochs = recommender_instance.get_early_stopping_final_epochs_dict()["epochs"]
+        # optuna_trial.set_user_attr("epochs", epochs)
+        # optuna_trial.set_user_attr("train_time (min)", (time.time() - start_time) / 60)
+        result_df, _ = self.evaluator_validation.evaluateRecommender(recommender_instance)
 
-    return result_df.loc[10]["MAP"]
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_graph(self, optuna_trial):
+        recomm = RP3betaRecommender(self.URM_train)
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "beta": optuna_trial.suggest_float("beta", 0, 1),
+            "alpha": optuna_trial.suggest_float("alpha", 0, 1.5)}
+        recomm.fit(**full_hyperp)
+
+        result_df, _ = self.evaluator_validation.evaluateRecommender(recomm)
+
+        return result_df.loc[10]["MAP"]
 

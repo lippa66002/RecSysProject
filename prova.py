@@ -1,5 +1,5 @@
 import DataHandler
-import ModelController
+from ModelController import ModelController
 from ModelNames import ModelName
 from Data_manager.split_functions.split_train_validation_random_holdout import split_train_in_two_percentage_global_sample
 from Evaluation.Evaluator import EvaluatorHoldout
@@ -21,20 +21,17 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
-URM_train_validation, URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage = 0.8)
-URM_train, URM_validation = split_train_in_two_percentage_global_sample(URM_train_validation, train_percentage = 0.8)
+controller = ModelController(URM_all, ICM_all)
 
-evaluator_validation = EvaluatorHoldout(URM_validation, cutoff_list=[10])
-evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[10])
+optuna_params = controller.optunizer(ModelName.SLIM_ElasticNet)
 
-optuna_params = ModelController.optunizer(ModelName.SLIM_ElasticNet)
+recommender_instance = controller.generate_model(ModelName.SLIM_ElasticNet, optuna_params)
 
-recommender_instance = ModelController.generate_model(ModelName.SLIM_ElasticNet, optuna_params, URM_train_validation)
 
 recommender_instance.save_model(folder_path="_saved_models", file_name = ModelName.SLIM_ElasticNet)
 
 
-result_df, _ = evaluator_test.evaluateRecommender(recommender_instance)
+result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)
 
 cutoff = 10  # Numero di raccomandazioni da generare
