@@ -1,14 +1,26 @@
+import numpy as np
 import optuna
-
+from scipy.sparse import csr_matrix
+from sklearn.ensemble import RandomForestRegressor
+import matplotlib.pyplot as plt
 from Optimize.SaveResults import SaveResults
+from Optimize.slim import objective_function_SLIM
+from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
-from Recommenders.HybridOptunable2 import HybridOptunable2
+from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import pandas as pd
 import scipy.sparse as sps
 from Evaluation.Evaluator import EvaluatorHoldout
 from Data_manager.split_functions.split_train_validation_random_holdout import split_train_in_two_percentage_global_sample
+from Data_manager.Movielens.Movielens1MReader import Movielens1MReader
+from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
+from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
+from Recommenders.MatrixFactorization.Cython.MatrixFactorization_Cython import MatrixFactorization_SVDpp_Cython
+from Recommenders.NonPersonalizedRecommender import TopPop
+from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
+import Optimize
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
-from prova import evaluator_validation
+
 
 URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",
                                 sep=",",
@@ -20,6 +32,9 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
                                 sep=",",
                                 dtype={0:int, 1:int, 2:float},
                                 engine='python')
+
+
+
 
 n_interactions = len(URM_all_dataframe)
 mapped_id, original_id = pd.factorize(URM_all_dataframe["user_id"].unique())
@@ -48,185 +63,92 @@ ICM_all.tocsr()
 
 URM_trainval, URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage = 0.8)
 URM_train, URM_validation = split_train_in_two_percentage_global_sample(URM_trainval, train_percentage = 0.8)
-evaluator_validation = EvaluatorHoldout(URM_test, cutoff_list=[10])
 
-'''
+numgroups = int(35735/20)
+user_interactions = np.array(URM_all.sum(axis=1)).flatten()
+URM_groups = []
+used_users = set()
+URM_all = URM_all.tocsr()
+print(URM_all.shape)
+# Step 2: Ordinare gli utenti in base al numero di interazioni
+sorted_users = np.argsort(user_interactions)  # crescente
+# Se preferisci decrescente, usa np.argsort(-user_interactions)
 
-evaluator_validation = EvaluatorHoldout(URM_test, cutoff_list=[10])
+# Step 3: Creare i gruppi
+for i in range(19):
+    # Prendere gli indici degli utenti per il gruppo corrente
+    group_users = sorted_users[i * numgroups: (i + 1) * numgroups]
+    used_users.update(group_users)
 
-def objective_function_graph(optuna_trial):
-    recomm = RP3betaRecommender(URM_trainval)
-    full_hyperp = {
-                   "topK": optuna_trial.suggest_int("topK", 5, 1000),
-                   "beta": optuna_trial.suggest_float("beta", 0, 1),
-        "alpha": optuna_trial.suggest_float("alpha",0,1.5)}
-    recomm.fit(**full_hyperp)
+    # Creare una nuova URM per il gruppo corrente
+    group_URM = URM_all[group_users, :]
+    URM_groups.append(group_URM)
 
-    result_df, _ = evaluator_validation.evaluateRecommender(recomm)
+    # Creare l'ultimo gruppo con gli utenti rimanenti
+remaining_users = np.setdiff1d(sorted_users, list(used_users))
+last_group_URM = URM_all[remaining_users, :]
+URM_groups.append(last_group_URM)
+first_group_URM = URM_groups[0]
 
-    return result_df.loc[10]["MAP"]
+MAP_recommender_per_group = {}
 
+# Configura i modelli per essere fittati in ogni gruppo
+recommender_object_dict = {
+    "ItemKNN": ItemKNNCFRecommender,
+    "UserKNN": UserKNNCFRecommender,
+    "SLIMElasticNet": SLIMElasticNetRecommender,
+    "RP3beta": RP3betaRecommender,
+    "TopPop": TopPop
+}
 
-optuna_study = optuna.create_study(direction="maximize")
+# Parametri per i modelli
+recommender_params = {
+    "ItemKNN": {"similarity": "cosine", "topK": 8, "shrink": 12},
+    "UserKNN": {"similarity": "dice", "topK": 19, "shrink": 737},
+    "SLIMElasticNet": {"alpha": 0.0002021210695683939, "topK": 856, "l1_ratio": 0.23722934371355184},
+    "RP3beta": {"topK": 12, "alpha": 0.5769111396825488, "beta": 0.0019321798490027353}
+}
 
-save_results = SaveResults()
+# Per ogni gruppo
+for group_id, group_URM in enumerate(URM_groups):
 
-optuna_study.optimize(objective_function_graph,
-                      callbacks=[save_results],
-                      n_trials=80)
-pruned_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.PRUNED]
-complete_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-optuna_study.best_trial
-optuna_study.best_trial.params
-save_results.results_df
+    # Separare gli utenti del gruppo dagli altri
+    users_in_group = group_URM.nonzero()[0]  # Gli utenti in questo gruppo
+    users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
+    users_not_in_group = sorted_users[users_not_in_group_flag]
 
+    # Valutatore con utenti esclusi dal gruppo
+    evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[10], ignore_users=users_not_in_group)
 
+    print(f"Fitting and evaluating models for Group {group_id + 1}")
 
+    # Fittare e valutare ogni raccomandatore per il gruppo corrente
+    for label, recommender_class in recommender_object_dict.items():
+        # Inizializzare il raccomandatore
+        recommender = recommender_class(group_URM)
 
+        # Fittare il modello con i parametri specifici
+        if label in recommender_params:
+            recommender.fit(**recommender_params[label])
+        else:
+            recommender.fit()  # Per TopPop
 
+        # Valutare il modello
+        result_df, _ = evaluator_test.evaluateRecommender(recommender)
+        group_map = result_df.loc[10]["MAP"]  # MAP a cutoff 10
 
-def objective_function_KNN_similarities(optuna_trial):
-    recommender_instance = ItemKNN_CFCBF_Hybrid_Recommender(URM_trainval,ICM_all)
-    similarity = optuna_trial.suggest_categorical("similarity",
-                                                  ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky', 'euclidean'])
+        # Salvare i risultati
+        if label in MAP_recommender_per_group:
+            MAP_recommender_per_group[label].append(group_map)
+        else:
+            MAP_recommender_per_group[label] = [group_map]
 
-    full_hyperp = {"similarity": similarity,
-                   "topK": optuna_trial.suggest_int("topK", 5, 1000),
-                   "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
-                   }
-
-    if similarity == "asymmetric":
-        full_hyperp["asymmetric_alpha"] = optuna_trial.suggest_float("asymmetric_alpha", 0, 2, log=False)
-        full_hyperp["normalize"] = True
-
-    elif similarity == "tversky":
-        full_hyperp["tversky_alpha"] = optuna_trial.suggest_float("tversky_alpha", 0, 2, log=False)
-        full_hyperp["tversky_beta"] = optuna_trial.suggest_float("tversky_beta", 0, 2, log=False)
-        full_hyperp["normalize"] = True
-
-    elif similarity == "euclidean":
-        full_hyperp["normalize_avg_row"] = optuna_trial.suggest_categorical("normalize_avg_row", [True, False])
-        full_hyperp["similarity_from_distance_mode"] = optuna_trial.suggest_categorical("similarity_from_distance_mode",
-                                                                                        ["lin", "log", "exp"])
-        full_hyperp["normalize"] = optuna_trial.suggest_categorical("normalize", [True, False])
-
-    recommender_instance.fit(**full_hyperp)
-
-    result_df, _ = evaluator_validation.evaluateRecommender(recommender_instance)
-
-    return result_df.loc[10]["MAP"]
-optuna_study = optuna.create_study(direction="maximize")
-
-save_results = SaveResults()
-
-optuna_study.optimize(objective_function_KNN_similarities,
-                          callbacks=[save_results],
-                          n_trials=80)
-pruned_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.PRUNED]
-complete_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-optuna_study.best_trial
-optuna_study.best_trial.params
-save_results.results_df
-
-
-
-def objective_function_SLIM(optuna_trial):
-
-
-    recommender_instance = SLIMElasticNetRecommender(URM_trainval)
-    full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 1e-5, 1e-3),
-                   "topK": optuna_trial.suggest_int("topK", 5, 1000),
-                   "l1_ratio": optuna_trial.suggest_float("l1_ratio", 1e-3, 0.6),
-                   }
-    recommender_instance.fit(**full_hyperp)
-    #epochs = recommender_instance.get_early_stopping_final_epochs_dict()["epochs"]
-    #optuna_trial.set_user_attr("epochs", epochs)
-    #optuna_trial.set_user_attr("train_time (min)", (time.time() - start_time) / 60)
-    result_df, _ = evaluator_validation.evaluateRecommender(recommender_instance)
-
-    return result_df.loc[10]["MAP"]
-
-
-optuna_study = optuna.create_study(direction="maximize")
-
-
-save_results = SaveResults()
-
-optuna_study.optimize(objective_function_SLIM,
-                      callbacks=[save_results],
-                      n_trials=70)
-pruned_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.PRUNED]
-complete_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-optuna_study.best_trial
-optuna_study.best_trial.params
-save_results.results_df
-
-def _feature_importance(result_df):
-    regr = RandomForestRegressor(max_depth=2)
-
-    result_df = result_df.copy()
-    result_df = (result_df - result_df.mean()) / (result_df.std() + 1e-6)
-
-    y_train = result_df["result"]
-    X_train = result_df.copy()
-    X_train = X_train.drop(columns=["result"])
-
-    regr.fit(X_train, y_train)
-
-    plt.bar(X_train.columns, regr.feature_importances_)
-    plt.show()
-results_df = save_results.results_df.copy()
-results_df = results_df[results_df["normalize"]==1.0]
-results_df = results_df.drop(["normalize"], axis=1)
-
-_feature_importance(results_df)
-
-
-print("Best trial:")
-print("  Value Validation: ", optuna_study.best_trial.value)
-
-
-'''
-
-
-recom = SLIMElasticNetRecommender(URM_trainval)
-recom.fit(alpha= 0.0002021210695683939, topK= 856, l1_ratio= 0.23722934371355184)
-graphrec = RP3betaRecommender(URM_trainval)
-graphrec.fit(topK= 12, alpha= 0.5769111396825488, beta= 0.0019321798490027353)
-
-print(1)
-
-def  obj_hybrid(optuna_trial):
-    print("helloworld")
-    alpha = optuna_trial.suggest_float("alpha", 0.1, 0.9)
-    recommender_object = HybridOptunable2(URM_trainval)
-    recommender_object.fit(alpha,recom,graphrec)
-    result_df, _ = evaluator_validation.evaluateRecommender(recommender_object)
-    return result_df.loc[10][ "MAP"]
-
-optuna_study = optuna.create_study(direction="maximize")
-save_results = SaveResults()
-optuna_study.optimize(obj_hybrid,
-                      callbacks=[save_results],
-                      n_trials=70)
-pruned_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.PRUNED]
-complete_trials = [t for t in optuna_study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-optuna_study.best_trial
-optuna_study.best_trial.params
-save_results.results_df
-
-
-
-recommendations_list = []
-cutoff = 10
-for user_id in users["user_id"]:
-    recommendations = recom.recommend(user_id, cutoff=cutoff)
-    recommendations_list.append([user_id, recommendations])
-
-
-
-result_df, _ = evaluator_validation.evaluateRecommender(recom)
-print (result_df.loc[10]["MAP"])
-df_recommendations = pd.DataFrame(recommendations_list, columns=['user_id', 'item_list'])
-df_recommendations.to_csv('recomm.csv', index=False)
-
+# Creare il grafico
+plt.figure(figsize=(16, 9))
+for label, results in MAP_recommender_per_group.items():
+    plt.scatter(x=np.arange(0, len(results)), y=results, label=label)
+plt.ylabel("MAP")
+plt.xlabel("User Group")
+plt.title("MAP per User Group per Recommender")
+plt.legend()
+plt.show()
