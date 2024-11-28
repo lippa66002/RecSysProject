@@ -133,7 +133,7 @@ for group_id, group_URM in enumerate(URM_groups):
         else:
             recommender.fit()  # Per TopPop
 
-        # Valutare il modello
+# Valutare il modello
         result_df, _ = evaluator_test.evaluateRecommender(recommender)
         group_map = result_df.loc[10]["MAP"]  # MAP a cutoff 10
 
