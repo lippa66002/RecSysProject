@@ -10,6 +10,7 @@ from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarit
 from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.Neural.MultVAE_PyTorch_Recommender import MultVAERecommender_PyTorch
+from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import optuna
@@ -59,6 +60,9 @@ class ModelController:
         elif model_name == ModelName.ItemKNNSimilarityHybridRecommender:
             model = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.SLIM_BPR_Recommender:
+            model = SLIM_BPR_Cython(self.URM_train)
+            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -84,6 +88,8 @@ class ModelController:
             obj_func = self.objective_function_hybrid_ItemKNN_CF_CBF
         elif model_name == ModelName.ItemKNNSimilarityHybridRecommender:
             obj_func = self.objective_function_itemKNN_similarity_hybrid
+        elif model_name == ModelName.SLIM_BPR_Recommender:
+            obj_func = self.objective_function_SLIM_BPR_Cython
         else:
             raise ValueError("Model not found")
 
@@ -244,7 +250,20 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
-
+    def objective_function_SLIM_BPR_Cython(self, optuna_trial):
+        recommender_instance = SLIM_BPR_Cython(self.URM_train)
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True),
+            "lambda_i": optuna_trial.suggest_float("lambda_i", 1e-4, 1e-2, log=True),
+            "lambda_j": optuna_trial.suggest_float("lambda_j", 1e-4, 1e-2, log=True),
+            "batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
+            "symmetric": optuna_trial.suggest_categorical("symmetric", [True, False]),
+            "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["sgd", "adagrad", "adam"]),
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
 
 
 
