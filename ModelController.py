@@ -6,6 +6,9 @@ from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Optimize.SaveResults import SaveResults
 from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
+from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarityHybridRecommender
+from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
+from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.Neural.MultVAE_PyTorch_Recommender import MultVAERecommender_PyTorch
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
@@ -47,6 +50,15 @@ class ModelController:
         elif model_name == ModelName.MultVAERecommender_PyTorch:
             model = MultVAERecommender_PyTorch(self.URM_train)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.UserKNNCFRecommender:
+            model = UserKNNCFRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.Hybrid_ItemKNN_CF_CBF:
+            model = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.ItemKNNSimilarityHybridRecommender:
+            model = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -66,6 +78,12 @@ class ModelController:
             obj_func = self.objective_function_hybridOptunable2
         elif model_name == ModelName.MultVAERecommender_PyTorch:
             obj_func = self.objective_function_multVAE
+        elif model_name == ModelName.UserKNNCFRecommender:
+            obj_func = self.objective_function_userKNN
+        elif model_name == ModelName.Hybrid_ItemKNN_CF_CBF:
+            obj_func = self.objective_function_hybrid_ItemKNN_CF_CBF
+        elif model_name == ModelName.ItemKNNSimilarityHybridRecommender:
+            obj_func = self.objective_function_itemKNN_similarity_hybrid
         else:
             raise ValueError("Model not found")
 
@@ -175,4 +193,65 @@ class ModelController:
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
+
+    def objective_function_userKNN(self, optuna_trial):
+        recommender_instance = UserKNNCFRecommender(self.URM_train)
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
+            "similarity": optuna_trial.suggest_categorical("similarity",
+                                                           ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky',
+                                                            'euclidean']),
+            "normalize": optuna_trial.suggest_categorical("normalize", [True, False]),
+            "feature_weighting": optuna_trial.suggest_categorical("feature_weighting", ["BM25", "TF-IDF", "none"])
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_hybrid_ItemKNN_CF_CBF(self, optuna_trial):
+        recommender_instance = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
+            "similarity": optuna_trial.suggest_categorical("similarity",
+                                                           ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky',
+                                                            'euclidean']),
+            "normalize": optuna_trial.suggest_categorical("normalize", [True, False]),
+            "feature_weighting": optuna_trial.suggest_categorical("feature_weighting", ["BM25", "TF-IDF", "none"]),
+            "ICM_weight": optuna_trial.suggest_float("ICM_weight", 0.1, 1.0)
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_itemKNN_similarity_hybrid(self, optuna_trial):
+        slim = SLIMElasticNetRecommender(self.URM_train)
+        itemKNN = ItemKNNCFRecommender(self.URM_train)
+
+        slim.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender.zip")
+        itemKNN.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender.zip")
+
+        similarity_1 = slim.W_sparse
+        similarity_2 = itemKNN.W_sparse
+
+        recommender_instance = ItemKNNSimilarityHybridRecommender(self.URM_train, similarity_1, similarity_2)
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "alpha": optuna_trial.suggest_float("alpha", 0.0, 1.0)
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
+
+
+
+
+
+
+
+
+
+
 

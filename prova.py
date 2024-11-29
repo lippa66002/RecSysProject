@@ -23,15 +23,11 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
+optuna_params = controller.optunizer(ModelName.Hybrid_ItemKNN_CF_CBF)
 
-
-optuna_params = controller.optunizer(ModelName.ItemKNNCFRecommender)
-
-recommender_instance = controller.generate_model(ModelName.ItemKNNCFRecommender, optuna_params)
-
+recommender_instance = controller.generate_model(ModelName.Hybrid_ItemKNN_CF_CBF, optuna_params)
 
 recommender_instance.save_model(folder_path="_saved_models")
-
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)

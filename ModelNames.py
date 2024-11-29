@@ -12,3 +12,6 @@ class ModelName(Enum):
     HybridOptunable2 = "HybridOptunable2"
     EASE_R_Recommender = "EASE_R_Recommender"
     MultVAERecommender_PyTorch = "MultVAERecommender_PyTorch"
+    UserKNNCFRecommender = "UserKNNCFRecommender"
+    Hybrid_ItemKNN_CF_CBF = "Hybrid_ItemKNN_CF_CBF"
+    ItemKNNSimilarityHybridRecommender = "ItemKNNSimilarityHybridRecommender"
