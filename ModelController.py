@@ -68,6 +68,7 @@ class ModelController:
 
         return model
 
+
     def optunizer(self, model_name):
 
         if model_name == ModelName.SLIM_ElasticNet:
@@ -257,7 +258,7 @@ class ModelController:
             "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True),
             "lambda_i": optuna_trial.suggest_float("lambda_i", 1e-4, 1e-2, log=True),
             "lambda_j": optuna_trial.suggest_float("lambda_j", 1e-4, 1e-2, log=True),
-            "batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
+            #"batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
             "symmetric": optuna_trial.suggest_categorical("symmetric", [True, False]),
             "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["sgd", "adagrad", "adam"]),
         }
