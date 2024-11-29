@@ -7,6 +7,7 @@ from Optimize.SaveResults import SaveResults
 from Optimize.slim import objective_function_SLIM
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
+from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import pandas as pd
 import scipy.sparse as sps
@@ -64,91 +65,103 @@ ICM_all.tocsr()
 URM_trainval, URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage = 0.8)
 URM_train, URM_validation = split_train_in_two_percentage_global_sample(URM_trainval, train_percentage = 0.8)
 
-numgroups = int(35735/20)
-user_interactions = np.array(URM_all.sum(axis=1)).flatten()
-URM_groups = []
-used_users = set()
-URM_all = URM_all.tocsr()
-print(URM_all.shape)
-# Step 2: Ordinare gli utenti in base al numero di interazioni
-sorted_users = np.argsort(user_interactions)  # crescente
-# Se preferisci decrescente, usa np.argsort(-user_interactions)
+profile_length = np.ediff1d(sps.csr_matrix(URM_trainval).indptr)
+profile_length, profile_length.shape
+block_size = int(len(profile_length)*0.05)
+block_size
+sorted_users = np.argsort(profile_length)
+sorted_users
+for group_id in range(0, 20):
+    start_pos = group_id * block_size
+    end_pos = min((group_id + 1) * block_size, len(profile_length))
 
-# Step 3: Creare i gruppi
-for i in range(19):
-    # Prendere gli indici degli utenti per il gruppo corrente
-    group_users = sorted_users[i * numgroups: (i + 1) * numgroups]
-    used_users.update(group_users)
+    users_in_group = sorted_users[start_pos:end_pos]
 
-    # Creare una nuova URM per il gruppo corrente
-    group_URM = URM_all[group_users, :]
-    URM_groups.append(group_URM)
+    users_in_group_p_len = profile_length[users_in_group]
 
-    # Creare l'ultimo gruppo con gli utenti rimanenti
-remaining_users = np.setdiff1d(sorted_users, list(used_users))
-last_group_URM = URM_all[remaining_users, :]
-URM_groups.append(last_group_URM)
-first_group_URM = URM_groups[0]
+    print("Group {}, #users in group {}, average p.len {:.2f}, median {}, min {}, max {}".format(
+        group_id,
+        users_in_group.shape[0],
+        users_in_group_p_len.mean(),
+        np.median(users_in_group_p_len),
+        users_in_group_p_len.min(),
+        users_in_group_p_len.max()))
 
-MAP_recommender_per_group = {}
+    MAP_recommender_per_group = {}
 
-# Configura i modelli per essere fittati in ogni gruppo
-recommender_object_dict = {
-    "ItemKNN": ItemKNNCFRecommender,
-    "UserKNN": UserKNNCFRecommender,
-    "SLIMElasticNet": SLIMElasticNetRecommender,
-    "RP3beta": RP3betaRecommender,
-    "TopPop": TopPop
-}
+    collaborative_recommender_class = {"TopPop": TopPop,
+                                       "UserKNNCF": UserKNNCFRecommender,
+                                       "ItemKNNCF": ItemKNNCFRecommender,
+                                       "RP3beta": RP3betaRecommender,
 
-# Parametri per i modelli
-recommender_params = {
-    "ItemKNN": {"similarity": "cosine", "topK": 8, "shrink": 12},
-    "UserKNN": {"similarity": "dice", "topK": 19, "shrink": 737},
-    #"SLIMElasticNet": {"alpha": 0.0002021210695683939, "topK": 856, "l1_ratio": 0.23722934371355184},
-    "RP3beta": {"topK": 12, "alpha": 0.5769111396825488, "beta": 0.0019321798490027353}
-}
 
-# Per ogni gruppo
-for group_id, group_URM in enumerate(URM_groups):
+                                       }
 
-    # Separare gli utenti del gruppo dagli altri
-    users_in_group = group_URM.nonzero()[0]  # Gli utenti in questo gruppo
-    users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
-    users_not_in_group = sorted_users[users_not_in_group_flag]
+    content_recommender_class = {"ItemKNNCBF": ItemKNNCBFRecommender,
+                                 "ItemKNNCFCBF": ItemKNN_CFCBF_Hybrid_Recommender
+                                 }
 
-    # Valutatore con utenti esclusi dal gruppo
-    evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[10], ignore_users=users_not_in_group)
+    recommender_object_dict = {}
 
-    print(f"Fitting and evaluating models for Group {group_id + 1}")
+    for label, recommender_class in collaborative_recommender_class.items():
+        recommender_object = recommender_class(URM_train)
+        if recommender_object.RECOMMENDER_NAME == "ItemKNNCF":
+            recommender_object.fit(similarity= "cosine", topK= 8, shrink= 12)
+        elif recommender_object.RECOMMENDER_NAME == "USER":
+            recommender_object.fit(similarity= "dice", topK= 19, shrink= 737)
 
-    # Fittare e valutare ogni raccomandatore per il gruppo corrente
-    for label, recommender_class in recommender_object_dict.items():
-        # Inizializzare il raccomandatore
-        recommender = recommender_class(group_URM)
-
-        # Fittare il modello con i parametri specifici
-        if label in recommender_params:
-            recommender.fit(**recommender_params[label])
+        elif recommender_object.RECOMMENDER_NAME == "RP3beta":
+            recommender_object.fit(topK= 12, alpha= 0.5769111396825488, beta= 0.0019321798490027353)
         else:
-            recommender.fit()  # Per TopPop
+            recommender_object.fit()
 
-# Valutare il modello
-        result_df, _ = evaluator_test.evaluateRecommender(recommender)
-        group_map = result_df.loc[10]["MAP"]  # MAP a cutoff 10
 
-        # Salvare i risultati
-        if label in MAP_recommender_per_group:
-            MAP_recommender_per_group[label].append(group_map)
-        else:
-            MAP_recommender_per_group[label] = [group_map]
+        recommender_object_dict[label] = recommender_object
 
-# Creare il grafico
-plt.figure(figsize=(16, 9))
-for label, results in MAP_recommender_per_group.items():
-    plt.scatter(x=np.arange(0, len(results)), y=results, label=label)
-plt.ylabel("MAP")
-plt.xlabel("User Group")
-plt.title("MAP per User Group per Recommender")
-plt.legend()
-plt.show()
+    for label, recommender_class in content_recommender_class.items():
+        recommender_object = recommender_class(URM_trainval, ICM_all)
+        recommender_object.fit()
+        recommender_object_dict[label] = recommender_object
+
+        cutoff = 10
+
+        for group_id in range(0, 20):
+
+            start_pos = group_id * block_size
+            end_pos = min((group_id + 1) * block_size, len(profile_length))
+
+            users_in_group = sorted_users[start_pos:end_pos]
+
+            users_in_group_p_len = profile_length[users_in_group]
+
+            print("Group {}, #users in group {}, average p.len {:.2f}, median {}, min {}, max {}".format(
+                group_id,
+                users_in_group.shape[0],
+                users_in_group_p_len.mean(),
+                np.median(users_in_group_p_len),
+                users_in_group_p_len.min(),
+                users_in_group_p_len.max()))
+
+            users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
+            users_not_in_group = sorted_users[users_not_in_group_flag]
+
+            evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[cutoff], ignore_users=users_not_in_group)
+
+            for label, recommender in recommender_object_dict.items():
+                result_df, _ = evaluator_test.evaluateRecommender(recommender)
+                if label in MAP_recommender_per_group:
+                    MAP_recommender_per_group[label].append(result_df.loc[cutoff]["MAP"])
+                else:
+                    MAP_recommender_per_group[label] = [result_df.loc[cutoff]["MAP"]]
+
+
+
+
+        _ = plt.figure(figsize=(16, 9))
+        for label, recommender in recommender_object_dict.items():
+            results = MAP_recommender_per_group[label]
+            plt.scatter(x=np.arange(0, len(results)), y=results, label=label)
+        plt.ylabel('MAP')
+        plt.xlabel('User Group')
+        plt.legend()
+        plt.show()
