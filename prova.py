@@ -23,6 +23,8 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
+
+
 optuna_params = controller.optunizer(ModelName.ItemKNNCFRecommender)
 
 recommender_instance = controller.generate_model(ModelName.ItemKNNCFRecommender, optuna_params)

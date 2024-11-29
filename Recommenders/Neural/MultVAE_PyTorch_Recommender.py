@@ -178,6 +178,8 @@ class MultVAERecommender_PyTorch(BaseRecommender, Incremental_Training_Early_Sto
 
         self.warm_user_ids = np.arange(0, self.n_users)[np.ediff1d(sps.csr_matrix(self.URM_train).indptr) > 0]
 
+        print("Init: n_items = " + self.n_items)
+
 
     def _compute_item_score(self, user_id_array, items_to_compute = None):
 
@@ -233,6 +235,8 @@ class MultVAERecommender_PyTorch(BaseRecommender, Incremental_Training_Early_Sto
             l2_reg=0.01,
             sgd_mode=None,
             **earlystopping_kwargs):
+
+        print("fit: p_dims =" + p_dims[-1] + " and n_items = " + self.n_items)
 
         assert p_dims[-1] == self.n_items, "p_dims inconsistent with data, first dimension expected to be the number of items"
 
