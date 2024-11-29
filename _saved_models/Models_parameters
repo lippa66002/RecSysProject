@@ -4,4 +4,7 @@ recommender_params = {
     "SLIMElasticNet": {"alpha": 0.0002021210695683939, "topK": 856, "l1_ratio": 0.23722934371355184},
     "RP3beta": {"topK": 12, "alpha": 0.5769111396825488, "beta": 0.0019321798490027353}
     "HybridOptunable2": {"alpha": 0.8982253192979105}
+    "ItemKNN_CFCBF_Hybrid": {'topK': 6, 'shrink': 167, 'similarity': 'asymmetric', 'normalize': False, 'feature_weighting': 'BM25', 'ICM_weight': 0.375006792830105}
+    "SLIM_BPR_Cython": {'topK': 11, 'learning_rate': 0.04193849345153912, 'lambda_i': 0.009876208709609856, 'lambda_j': 0.00044296738036044263, 'symmetric': True, 'sgd_mode': 'adagrad'}
+
 }
