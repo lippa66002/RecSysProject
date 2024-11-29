@@ -229,8 +229,8 @@ class ModelController:
         slim = SLIMElasticNetRecommender(self.URM_train)
         itemKNN = ItemKNNCFRecommender(self.URM_train)
 
-        slim.load_model(folder_path="_saved_models/", file_name="SLIMElasticNetRecommender.zip")
-        itemKNN.load_model(folder_path="_saved_models/", file_name="ItemKNNCFRecommender.zip")
+        slim.load_model(folder_path="_saved_models/", file_name="SLIMElasticNetRecommender")
+        itemKNN.load_model(folder_path="_saved_models/", file_name="ItemKNNCFRecommender")
 
         similarity_1 = slim.W_sparse
         similarity_2 = itemKNN.W_sparse
