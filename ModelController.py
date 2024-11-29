@@ -15,10 +15,10 @@ class ModelController:
     def __init__(self, URM_all, ICM_all):
         self.URM_all = URM_all
         self.ICM_all = ICM_all
-        self.URM_train_validation, self.URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage=0.8)
-        self.URM_train, self.URM_validation = split_train_in_two_percentage_global_sample(self.URM_train_validation,
-                                                                                train_percentage=0.8)
-        self.evaluator_validation = EvaluatorHoldout(self.URM_validation, cutoff_list=[10])
+        self.URM_train, self.URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage=0.8)
+        #self.URM_train, self.URM_validation = split_train_in_two_percentage_global_sample(self.URM_train_validation,
+                       #                                                         train_percentage=0.8)
+        #self.evaluator_validation = EvaluatorHoldout(self.URM_validation, cutoff_list=[10])
         self.evaluator_test = EvaluatorHoldout(self.URM_test, cutoff_list=[10])
 
     def generate_model(self, model_name, optuna_hpp):
@@ -93,7 +93,7 @@ class ModelController:
 
         recommender_instance.fit(**full_hyperp)
 
-        result_df, _ = self.evaluator_validation.evaluateRecommender(recommender_instance)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
 
         return result_df.loc[10]["MAP"]
 
@@ -108,7 +108,7 @@ class ModelController:
         # epochs = recommender_instance.get_early_stopping_final_epochs_dict()["epochs"]
         # optuna_trial.set_user_attr("epochs", epochs)
         # optuna_trial.set_user_attr("train_time (min)", (time.time() - start_time) / 60)
-        result_df, _ = self.evaluator_validation.evaluateRecommender(recommender_instance)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
 
         return result_df.loc[10]["MAP"]
 
@@ -120,7 +120,7 @@ class ModelController:
             "alpha": optuna_trial.suggest_float("alpha", 0, 1.5)}
         recomm.fit(**full_hyperp)
 
-        result_df, _ = self.evaluator_validation.evaluateRecommender(recomm)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recomm)
 
         return result_df.loc[10]["MAP"]
 

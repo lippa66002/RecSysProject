@@ -1,0 +1,6 @@
+recommender_params = {
+    "ItemKNN": {"similarity": "cosine", "topK": 8, "shrink": 12},
+    "UserKNN": {"similarity": "dice", "topK": 19, "shrink": 737},
+    "SLIMElasticNet": {"alpha": 0.0002021210695683939, "topK": 856, "l1_ratio": 0.23722934371355184},
+    "RP3beta": {"topK": 12, "alpha": 0.5769111396825488, "beta": 0.0019321798490027353}
+}
