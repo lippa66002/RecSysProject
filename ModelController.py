@@ -170,7 +170,7 @@ class ModelController:
             "dropout": optuna_trial.suggest_float("dropout", 0.1, 0.5),
             "total_anneal_steps": optuna_trial.suggest_int("total_anneal_steps", 10000, 200000),
             "anneal_cap": optuna_trial.suggest_float("anneal_cap", 0.1, 0.5),
-            "p_dims": [self.URM_train.shape[1], optuna_trial.suggest_int("encoding_size", 50, 200)]
+            "p_dims": [self.URM_train.shape[1], self.URM_train.shape[1]]
         }
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
