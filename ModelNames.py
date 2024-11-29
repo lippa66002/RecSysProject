@@ -10,3 +10,5 @@ class ModelName(Enum):
     RP3betaRecommender = "RP3betaRecommender"
     ContentBasedRecommender = "ContentBasedRecommender"
     HybridOptunable2 = "HybridOptunable2"
+    EASE_R_Recommender = "EASE_R_Recommender"
+    MultVAERecommender_PyTorch = "MultVAERecommender_PyTorch"
