@@ -68,6 +68,7 @@ class ModelController:
 
         return model
 
+
     def optunizer(self, model_name):
 
         if model_name == ModelName.SLIM_ElasticNet:
