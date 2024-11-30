@@ -2,6 +2,7 @@ from Data_manager.split_functions.split_train_validation_random_holdout import \
     split_train_in_two_percentage_global_sample
 from Evaluation.Evaluator import EvaluatorHoldout
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
+from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Optimize.SaveResults import SaveResults
 from Recommenders.HybridOptunable2 import HybridOptunable2
@@ -63,6 +64,9 @@ class ModelController:
         elif model_name == ModelName.SLIM_BPR_Recommender:
             model = SLIM_BPR_Cython(self.URM_train)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.P3alphaRecommender:
+            model = P3alphaRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -91,6 +95,8 @@ class ModelController:
             obj_func = self.objective_function_itemKNN_similarity_hybrid
         elif model_name == ModelName.SLIM_BPR_Recommender:
             obj_func = self.objective_function_SLIM_BPR_Cython
+        elif model_name == ModelName.P3alphaRecommender:
+            obj_func = self.objective_function_P3alpha
         else:
             raise ValueError("Model not found")
 
@@ -233,10 +239,10 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_itemKNN_similarity_hybrid(self, optuna_trial):
-        slim = SLIMElasticNetRecommender(self.URM_train)
+        slim = SLIM_BPR_Cython(self.URM_train)
         itemKNN = ItemKNNCFRecommender(self.URM_train)
 
-        slim.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+        slim.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
         itemKNN.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender")
 
         similarity_1 = slim.W_sparse
@@ -266,8 +272,18 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
-
-
+    def objective_function_P3alpha(self, optuna_trial):
+        recommender_instance = P3alphaRecommender(self.URM_train)
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "alpha": optuna_trial.suggest_float("alpha", 0.0, 2.0),
+            "min_rating": optuna_trial.suggest_int("min_rating", 0, 10),
+            "implicit": optuna_trial.suggest_categorical("implicit", [True, False]),
+            "normalize_similarity": optuna_trial.suggest_categorical("normalize_similarity", [True, False])
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
 
 
 

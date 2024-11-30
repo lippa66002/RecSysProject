@@ -23,9 +23,9 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
-optuna_params = controller.optunizer(ModelName.Hybrid_ItemKNN_CF_CBF)
+optuna_params = controller.optunizer(ModelName.ItemKNNSimilarityHybridRecommender)
 
-recommender_instance = controller.generate_model(ModelName.Hybrid_ItemKNN_CF_CBF, optuna_params)
+recommender_instance = controller.generate_model(ModelName.ItemKNNSimilarityHybridRecommender, optuna_params)
 
 recommender_instance.save_model(folder_path="_saved_models")
 

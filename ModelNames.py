@@ -16,3 +16,4 @@ class ModelName(Enum):
     Hybrid_ItemKNN_CF_CBF = "Hybrid_ItemKNN_CF_CBF"
     ItemKNNSimilarityHybridRecommender = "ItemKNNSimilarityHybridRecommender"
     SLIM_BPR_Recommender = "SLIM_BPR_Recommender"
+    P3alphaRecommender = "P3alphaRecommender"
