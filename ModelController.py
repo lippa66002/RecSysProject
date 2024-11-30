@@ -10,6 +10,7 @@ from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
 from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarityHybridRecommender
 from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
+from Recommenders.MatrixFactorization.PureSVDRecommender import PureSVDRecommender
 from Recommenders.Neural.MultVAE_PyTorch_Recommender import MultVAERecommender_PyTorch
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
@@ -59,7 +60,15 @@ class ModelController:
             model = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.ItemKNNSimilarityHybridRecommender:
-            model = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+            slim_bpr = SLIM_BPR_Cython(self.URM_train)
+            slim_en = SLIMElasticNetRecommender(self.URM_train)
+
+            slim_bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
+            slim_en.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+
+            similarity_1 = slim_bpr.W_sparse
+            similarity_2 = slim_en.W_sparse
+            model = ItemKNNSimilarityHybridRecommender(self.URM_train, similarity_1, similarity_2)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.SLIM_BPR_Recommender:
             model = SLIM_BPR_Cython(self.URM_train)
@@ -67,6 +76,8 @@ class ModelController:
         elif model_name == ModelName.P3alphaRecommender:
             model = P3alphaRecommender(self.URM_train)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.PureSVDRecommender:
+            model = PureSVDRecommender(self.URM_train)
         else:
             raise ValueError("Model not found")
 
@@ -97,6 +108,8 @@ class ModelController:
             obj_func = self.objective_function_SLIM_BPR_Cython
         elif model_name == ModelName.P3alphaRecommender:
             obj_func = self.objective_function_P3alpha
+        elif model_name == ModelName.PureSVDRecommender:
+            obj_func = self.objective_function_PureSVD
         else:
             raise ValueError("Model not found")
 
@@ -239,14 +252,14 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_itemKNN_similarity_hybrid(self, optuna_trial):
-        slim = SLIM_BPR_Cython(self.URM_train)
-        itemKNN = ItemKNNCFRecommender(self.URM_train)
+        slim_bpr = SLIM_BPR_Cython(self.URM_train)
+        slim_en = SLIMElasticNetRecommender(self.URM_train)
 
-        slim.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
-        itemKNN.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender")
+        slim_bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
+        slim_en.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
 
-        similarity_1 = slim.W_sparse
-        similarity_2 = itemKNN.W_sparse
+        similarity_1 = slim_bpr.W_sparse
+        similarity_2 = slim_en.W_sparse
 
         recommender_instance = ItemKNNSimilarityHybridRecommender(self.URM_train, similarity_1, similarity_2)
         full_hyperp = {
@@ -285,7 +298,15 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
-
+    def objective_function_PureSVD(self, optuna_trial):
+        recommender_instance = PureSVDRecommender(self.URM_train)
+        full_hyperp = {
+            "num_factors": optuna_trial.suggest_int("num_factors", 10, 500),
+            "random_seed": optuna_trial.suggest_int("random_seed", 0, 10000)
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
 
 
 

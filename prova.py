@@ -27,7 +27,7 @@ optuna_params = controller.optunizer(ModelName.ItemKNNSimilarityHybridRecommende
 
 recommender_instance = controller.generate_model(ModelName.ItemKNNSimilarityHybridRecommender, optuna_params)
 
-recommender_instance.save_model(folder_path="_saved_models")
+recommender_instance.save_model(folder_path="_saved_models", file_name="SLIM_BRP_and_EN")
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)
