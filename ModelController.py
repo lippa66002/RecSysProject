@@ -78,6 +78,10 @@ class ModelController:
             model.fit(**optuna_hpp)
         elif model_name == ModelName.PureSVDRecommender:
             model = PureSVDRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.HybridOptunable2:
+            model = HybridOptunable2(self.URM_train)
+            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -110,6 +114,8 @@ class ModelController:
             obj_func = self.objective_function_P3alpha
         elif model_name == ModelName.PureSVDRecommender:
             obj_func = self.objective_function_PureSVD
+        elif model_name == ModelName.HybridOptunable2:
+            obj_func = self.obj_hybrid
         else:
             raise ValueError("Model not found")
 
@@ -308,7 +314,15 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
-
-
+    def obj_hybrid(self, optuna_trial):
+        model1 = SLIM_BPR_Cython(self.URM_train)
+        model1.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
+        model2 = ItemKNNCFRecommender(self.URM_train)
+        model2.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender")
+        alpha = optuna_trial.suggest_float("alpha", 0.1, 0.9)
+        recommender_object = HybridOptunable2(self.URM_train)
+        recommender_object.fit(alpha, model1, model2)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_object)
+        return result_df.loc[10]["MAP"]
 
 

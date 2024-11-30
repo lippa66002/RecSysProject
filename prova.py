@@ -23,11 +23,11 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
-optuna_params = controller.optunizer(ModelName.ItemKNNSimilarityHybridRecommender)
+optuna_params = controller.optunizer(ModelName.HybridOptunable2)
 
-recommender_instance = controller.generate_model(ModelName.ItemKNNSimilarityHybridRecommender, optuna_params)
+recommender_instance = controller.generate_model(ModelName.HybridOptunable2, optuna_params)
 
-recommender_instance.save_model(folder_path="_saved_models", file_name="SLIM_BRP_and_EN")
+recommender_instance.save_model(folder_path="_saved_models", file_name="SLIM_BRP_and_ItemKNN")
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)
