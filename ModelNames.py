@@ -18,3 +18,6 @@ class ModelName(Enum):
     SLIM_BPR_Recommender = "SLIM_BPR_Recommender"
     P3alphaRecommender = "P3alphaRecommender"
     PureSVDRecommender = "PureSVDRecommender"
+    ScoresHybridRecommender = "ScoresHybridRecommender"
+    DifferentLossScoresHybridRecommender = "DifferentLossScoresHybridRecommender"
+

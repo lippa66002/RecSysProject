@@ -23,11 +23,11 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
-optuna_params = controller.optunizer(ModelName.HybridOptunable2)
+optuna_params = controller.optunizer(ModelName.ContentBasedRecommender)
 
-recommender_instance = controller.generate_model(ModelName.HybridOptunable2, optuna_params)
+recommender_instance = controller.generate_model(ModelName.ContentBasedRecommender, optuna_params)
 
-recommender_instance.save_model(folder_path="_saved_models", file_name="SLIM_BRP_and_ItemKNN")
+recommender_instance.save_model(folder_path="_saved_models")
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)

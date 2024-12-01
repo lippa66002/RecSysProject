@@ -16,7 +16,7 @@ class HybridOptunable2(BaseItemSimilarityMatrixRecommender):
         super(HybridOptunable2, self).__init__(URM_train)
         self.W_sparse = None
 
-    def fit(self, alpha,rec1, rec2):
+    def fit(self, alpha, rec1, rec2):
         new_similarity = (1.0 - alpha) * rec1.W_sparse + alpha * rec2.W_sparse
         recommender_object = ItemKNNCustomSimilarityRecommender(self.URM_train)
         recommender_object.fit(new_similarity)

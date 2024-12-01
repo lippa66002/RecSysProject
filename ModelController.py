@@ -5,6 +5,7 @@ from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Optimize.SaveResults import SaveResults
+from Recommenders.HybridDifferentLossFunctions import DifferentLossScoresHybridRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
 from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarityHybridRecommender
@@ -17,6 +18,9 @@ from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommende
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import optuna
 from ModelNames import ModelName
+import pandas as pd
+
+from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 
 class ModelController:
@@ -52,11 +56,17 @@ class ModelController:
             model1.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
             model2 = ItemKNNCFRecommender(self.URM_train)
             model2.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender")
-            recommender_object = HybridOptunable2(self.URM_train)
-            recommender_object.fit(optuna_hpp.pop("alpha"), model1, model2)
-
             model = HybridOptunable2(self.URM_train)
-            model.fit(**optuna_hpp)
+
+            print(model1.W_sparse)
+            print(model2.W_sparse)
+            print(pd.concat([model1.W_sparse, model2.W_sparse],axis=1))
+
+
+            model.fit(optuna_hpp.pop("alpha"), model1, model2)
+
+            #model = HybridOptunable2(self.URM_train)
+            #model.fit(**optuna_hpp)
         elif model_name == ModelName.MultVAERecommender_PyTorch:
             model = MultVAERecommender_PyTorch(self.URM_train)
             model.fit(**optuna_hpp)
@@ -85,6 +95,14 @@ class ModelController:
             model.fit(**optuna_hpp)
         elif model_name == ModelName.PureSVDRecommender:
             model = PureSVDRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.ScoresHybridRecommender:
+            model1 = SLIM_BPR_Cython(self.URM_train)
+            model2 = SLIMElasticNetRecommender(self.URM_train)
+
+            model1.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
+            model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+            model = ScoresHybridRecommender(self.URM_train, model1, model2)
             model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
@@ -119,6 +137,10 @@ class ModelController:
             obj_func = self.objective_function_P3alpha
         elif model_name == ModelName.PureSVDRecommender:
             obj_func = self.objective_function_PureSVD
+        elif model_name == ModelName.DifferentLossScoresHybridRecommender:
+            obj_func = self.objective_function_hybrid_different_loss_scores
+        elif model_name == ModelName.ContentBasedRecommender:
+            obj_func = self.objective_function_content_based
         else:
             raise ValueError("Model not found")
 
@@ -328,4 +350,46 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_object)
         return result_df.loc[10]["MAP"]
 
+    def objective_function_content_based(self, optuna_trial):
+        recommender_instance = ItemKNNCBFRecommender(self.URM_train, self.ICM_all)
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
+            "similarity": optuna_trial.suggest_categorical("similarity",
+                                                           ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky',
+                                                            'euclidean']),
+            "normalize": optuna_trial.suggest_categorical("normalize", [True, False]),
+            "feature_weighting": optuna_trial.suggest_categorical("feature_weighting", ["BM25", "TF-IDF", "none"])
+        }
+
+        if full_hyperp["similarity"] == "asymmetric":
+            full_hyperp["asymmetric_alpha"] = optuna_trial.suggest_float("asymmetric_alpha", 0, 2, log=False)
+
+        elif full_hyperp["similarity"] == "tversky":
+            full_hyperp["tversky_alpha"] = optuna_trial.suggest_float("tversky_alpha", 0, 2, log=False)
+            full_hyperp["tversky_beta"] = optuna_trial.suggest_float("tversky_beta", 0, 2, log=False)
+
+        elif full_hyperp["similarity"] == "euclidean":
+            full_hyperp["normalize_avg_row"] = optuna_trial.suggest_categorical("normalize_avg_row", [True, False])
+            full_hyperp["similarity_from_distance_mode"] = optuna_trial.suggest_categorical(
+                "similarity_from_distance_mode", ["lin", "log", "exp"])
+
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_different_loss_scores(self, optuna_trial):
+        model1 = SLIM_BPR_Cython(self.URM_train)
+        model1.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
+        model2 = SLIMElasticNetRecommender(self.URM_train)
+        model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+
+        recommender_instance = DifferentLossScoresHybridRecommender(self.URM_train, model1, model2)
+        full_hyperp = {
+            "norm": optuna_trial.suggest_categorical("norm", [1, 2]),
+            "alpha": optuna_trial.suggest_float("alpha", 0.0, 1.0)
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
 
