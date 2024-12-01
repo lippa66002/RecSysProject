@@ -48,6 +48,13 @@ class ModelController:
             model = EASE_R_Recommender(self.URM_train)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.HybridOptunable2:
+            model1 = SLIM_BPR_Cython(self.URM_train)
+            model1.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
+            model2 = ItemKNNCFRecommender(self.URM_train)
+            model2.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender")
+            recommender_object = HybridOptunable2(self.URM_train)
+            recommender_object.fit(optuna_hpp.pop("alpha"), model1, model2)
+
             model = HybridOptunable2(self.URM_train)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.MultVAERecommender_PyTorch:
@@ -79,9 +86,6 @@ class ModelController:
         elif model_name == ModelName.PureSVDRecommender:
             model = PureSVDRecommender(self.URM_train)
             model.fit(**optuna_hpp)
-        elif model_name == ModelName.HybridOptunable2:
-            model = HybridOptunable2(self.URM_train)
-            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -99,7 +103,8 @@ class ModelController:
         elif model_name == ModelName.EASE_R_Recommender:
             obj_func = self.objective_function_easeR
         elif model_name == ModelName.HybridOptunable2:
-            obj_func = self.objective_function_hybridOptunable2
+            #obj_func = self.objective_function_hybridOptunable2
+            obj_func = self.obj_hybrid
         elif model_name == ModelName.MultVAERecommender_PyTorch:
             obj_func = self.objective_function_multVAE
         elif model_name == ModelName.UserKNNCFRecommender:
@@ -114,8 +119,6 @@ class ModelController:
             obj_func = self.objective_function_P3alpha
         elif model_name == ModelName.PureSVDRecommender:
             obj_func = self.objective_function_PureSVD
-        elif model_name == ModelName.HybridOptunable2:
-            obj_func = self.obj_hybrid
         else:
             raise ValueError("Model not found")
 
