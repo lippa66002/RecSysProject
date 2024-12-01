@@ -1,5 +1,7 @@
 from Recommenders.BaseRecommender import BaseRecommender
 import scipy.sparse as sps
+from numpy import linalg as LA
+
 
 class DifferentLossScoresHybridRecommender(BaseRecommender):
     """ ScoresHybridRecommender

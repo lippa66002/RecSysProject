@@ -104,6 +104,14 @@ class ModelController:
             model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
             model = ScoresHybridRecommender(self.URM_train, model1, model2)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.DifferentLossScoresHybridRecommender:
+            model1 = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+            model2 = SLIMElasticNetRecommender(self.URM_train)
+
+            model1.load_model(folder_path="_saved_models", file_name="ItemKNN_CFCBF_HybridRecommender")
+            model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+            model = DifferentLossScoresHybridRecommender(self.URM_train, model1, model2)
+            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -193,14 +201,11 @@ class ModelController:
     def objective_function_SLIM(self, optuna_trial):
 
         recommender_instance = SLIMElasticNetRecommender(self.URM_train)
-        full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 1e-5, 1e-3),
-                       "topK": optuna_trial.suggest_int("topK", 5, 1000),
-                       "l1_ratio": optuna_trial.suggest_float("l1_ratio", 1e-3, 0.6),
+        full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 0.0001, 0.0003, log=True), #1e-5, 1e-3
+                       "topK": optuna_trial.suggest_int("topK", 600, 1000), #5, 1000
+                       "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.1, 0.4), #1e-3, 0.6
                        }
         recommender_instance.fit(**full_hyperp)
-        # epochs = recommender_instance.get_early_stopping_final_epochs_dict()["epochs"]
-        # optuna_trial.set_user_attr("epochs", epochs)
-        # optuna_trial.set_user_attr("train_time (min)", (time.time() - start_time) / 60)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
 
         return result_df.loc[10]["MAP"]
@@ -378,9 +383,9 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
-    def objective_function_different_loss_scores(self, optuna_trial):
-        model1 = SLIM_BPR_Cython(self.URM_train)
-        model1.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
+    def objective_function_hybrid_different_loss_scores(self, optuna_trial):
+        model1 = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+        model1.load_model(folder_path="_saved_models", file_name="ItemKNN_CFCBF_HybridRecommender")
         model2 = SLIMElasticNetRecommender(self.URM_train)
         model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
 

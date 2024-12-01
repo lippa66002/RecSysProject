@@ -23,9 +23,9 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
-optuna_params = controller.optunizer(ModelName.ContentBasedRecommender)
+optuna_params = controller.optunizer(ModelName.DifferentLossScoresHybridRecommender)
 
-recommender_instance = controller.generate_model(ModelName.ContentBasedRecommender, optuna_params)
+recommender_instance = controller.generate_model(ModelName.DifferentLossScoresHybridRecommender, optuna_params)
 
 recommender_instance.save_model(folder_path="_saved_models")
 
