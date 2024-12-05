@@ -20,4 +20,6 @@ class ModelName(Enum):
     PureSVDRecommender = "PureSVDRecommender"
     ScoresHybridRecommender = "ScoresHybridRecommender"
     DifferentLossScoresHybridRecommender = "DifferentLossScoresHybridRecommender"
+    CFW_D_Similarity_Cython = "CFW_D_Similarity_Cython"
+    MatrixFactorization_Cython_Recommender = "MatrixFactorization_Cython_Recommender"
 

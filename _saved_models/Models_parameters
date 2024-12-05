@@ -1,11 +1,14 @@
 recommender_params = {
     "ItemKNN": {"similarity": "cosine", "topK": 8, "shrink": 12},
     "UserKNN": {"similarity": "dice", "topK": 19, "shrink": 737}, {'topK': 995, 'shrink': 398, 'similarity': 'cosine', 'normalize': True, 'feature_weighting': 'BM25'},
-    "SLIMElasticNet": {"alpha": 0.0002021210695683939, "topK": 856, "l1_ratio": 0.23722934371355184},
+    "SLIMElasticNet": {"alpha": 0.0002021210695683939, "topK": 856, "l1_ratio": 0.23722934371355184}, {'alpha': 0.0002769050189773266, 'topK': 979, 'l1_ratio': 0.15715596524094688}
     "RP3beta": {"topK": 12, "alpha": 0.5769111396825488, "beta": 0.0019321798490027353}
     "HybridOptunable2": {"alpha": 0.8982253192979105}
     "ItemKNN_CFCBF_Hybrid": {'topK': 6, 'shrink': 167, 'similarity': 'asymmetric', 'normalize': False, 'feature_weighting': 'BM25', 'ICM_weight': 0.375006792830105}
     "SLIM_BPR_Cython": {'topK': 11, 'learning_rate': 0.04193849345153912, 'lambda_i': 0.009876208709609856, 'lambda_j': 0.00044296738036044263, 'symmetric': True, 'sgd_mode': 'adagrad'}
     "slim_bpr+itemknn": (0.0713751505230532) {'topK': 698, 'alpha': 0.3166541440484777}
     "slim_bpr+slim_en": (0.10068617418107022) {'topK': 340, 'alpha': 4.464670628236134e-05}
+    "SLIM_EN+item_cf_cbf": (0.10119343732433732) {'norm': 1, 'alpha': 0.0003942957276686053}
+    "SLIM_EN + ItemKNNCF on different loss": norm= 1, alpha= 0.0029154147461754767
+
 }

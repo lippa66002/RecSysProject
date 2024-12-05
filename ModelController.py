@@ -2,6 +2,7 @@ from Data_manager.split_functions.split_train_validation_random_holdout import \
     split_train_in_two_percentage_global_sample
 from Evaluation.Evaluator import EvaluatorHoldout
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
+from Recommenders.FeatureWeighting.Cython.CFW_D_Similarity_Cython import CFW_D_Similarity_Cython
 from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Optimize.SaveResults import SaveResults
@@ -11,6 +12,7 @@ from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
 from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarityHybridRecommender
 from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
+from Recommenders.MatrixFactorization.Cython.MatrixFactorization_Cython import _MatrixFactorization_Cython
 from Recommenders.MatrixFactorization.PureSVDRecommender import PureSVDRecommender
 from Recommenders.Neural.MultVAE_PyTorch_Recommender import MultVAERecommender_PyTorch
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
@@ -57,12 +59,6 @@ class ModelController:
             model2 = ItemKNNCFRecommender(self.URM_train)
             model2.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender")
             model = HybridOptunable2(self.URM_train)
-
-            print(model1.W_sparse)
-            print(model2.W_sparse)
-            print(pd.concat([model1.W_sparse, model2.W_sparse],axis=1))
-
-
             model.fit(optuna_hpp.pop("alpha"), model1, model2)
 
             #model = HybridOptunable2(self.URM_train)
@@ -105,12 +101,18 @@ class ModelController:
             model = ScoresHybridRecommender(self.URM_train, model1, model2)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.DifferentLossScoresHybridRecommender:
-            model1 = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+            model1 = RP3betaRecommender(self.URM_train)
             model2 = SLIMElasticNetRecommender(self.URM_train)
 
-            model1.load_model(folder_path="_saved_models", file_name="ItemKNN_CFCBF_HybridRecommender")
+            model1.load_model(folder_path="_saved_models", file_name="RP3betaRecommender")
             model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
             model = DifferentLossScoresHybridRecommender(self.URM_train, model1, model2)
+            model.fit(**optuna_hpp)
+        #elif model_name == ModelName.CFW_D_Similarity_Cython:
+         #   model = CFW_D_Similarity_Cython(self.URM_train)
+         #   model.fit(**optuna_hpp)
+        elif model_name == ModelName.MatrixFactorization_Cython_Recommender:
+            model = _MatrixFactorization_Cython(self.URM_train)
             model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
@@ -149,6 +151,8 @@ class ModelController:
             obj_func = self.objective_function_hybrid_different_loss_scores
         elif model_name == ModelName.ContentBasedRecommender:
             obj_func = self.objective_function_content_based
+        elif model_name == ModelName.MatrixFactorization_Cython_Recommender:
+            obj_func = self.objective_function_matrixFactorizationCython
         else:
             raise ValueError("Model not found")
 
@@ -384,8 +388,8 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_hybrid_different_loss_scores(self, optuna_trial):
-        model1 = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
-        model1.load_model(folder_path="_saved_models", file_name="ItemKNN_CFCBF_HybridRecommender")
+        model1 = RP3betaRecommender(self.URM_train)
+        model1.load_model(folder_path="_saved_models", file_name="RP3betaRecommender")
         model2 = SLIMElasticNetRecommender(self.URM_train)
         model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
 
@@ -398,3 +402,17 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
+    def objective_function_matrixFactorizationCython(self, optuna_trial):
+        recommender_instance = _MatrixFactorization_Cython(self.URM_train)
+
+        full_hyperp = {
+            "epochs": optuna_trial.suggest_int("epochs", 100, 100),
+            "batch_size": optuna_trial.suggest_int("batch_size", 1, 1024),
+            "num_factors": optuna_trial.suggest_int("num_factors", 1, 200),
+            "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-5, 1e-1, log=True),
+            "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["sgd", "adam", "adagrad", "rmsprop"])
+        }
+
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]

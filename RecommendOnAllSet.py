@@ -6,9 +6,11 @@ from Evaluation.Evaluator import EvaluatorHoldout
 import optuna
 import pandas as pd
 
+from Recommenders.HybridDifferentLossFunctions import DifferentLossScoresHybridRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarityHybridRecommender
+from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 
@@ -28,10 +30,10 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
+"""
+recommender_instance = HybridOptunable2(controller.URM_all)
 
-#recommender_instance = HybridOptunable2(controller.URM_all)
-
-#recommender_instance.load_model(folder_path="_saved_models", file_name = "HybridOptunable2 (1)")
+recommender_instance.load_model(folder_path="_saved_models", file_name = "HybridOptunable2 (1)")
 
 slim_bpr = SLIM_BPR_Cython(controller.URM_all)
 slim_en = SLIMElasticNetRecommender(controller.URM_all)
@@ -44,6 +46,29 @@ similarity_2 = slim_en.W_sparse
 
 recommender_instance = ItemKNNSimilarityHybridRecommender(controller.URM_all, similarity_1, similarity_2)
 recommender_instance.fit(topK= 340, alpha= 4.464670628236134e-05)
+
+
+model1 = ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_all, controller.ICM_all)
+model2 = SLIMElasticNetRecommender(controller.URM_all)
+
+model1.load_model(folder_path="_saved_models", file_name="ItemKNN_CFCBF_HybridRecommender")
+model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+recommender_instance = DifferentLossScoresHybridRecommender(controller.URM_all, model1, model2)
+recommender_instance.fit(norm=1, alpha=0.0003942957276686053)
+
+recommender_instance = SLIMElasticNetRecommender(controller.URM_all)
+recommender_instance.fit(alpha= 0.0002769050189773266, topK = 979, l1_ratio= 0.15715596524094688)
+"""
+
+model1 = ItemKNNCFRecommender(controller.URM_train)
+model2 = SLIMElasticNetRecommender(controller.URM_train)
+
+model1.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender")
+model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+recommender_instance = DifferentLossScoresHybridRecommender(controller.URM_train, model1, model2)
+recommender_instance.fit(norm= 1, alpha= 0.0029154147461754767)
+
+
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)
