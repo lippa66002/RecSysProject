@@ -31,9 +31,8 @@ class ModelController:
         self.URM_all = URM_all
         self.ICM_all = ICM_all
         self.URM_train, self.URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage=0.8)
-        #self.URM_train, self.URM_validation = split_train_in_two_percentage_global_sample(self.URM_train_validation,
-                       #                                                         train_percentage=0.8)
-        #self.evaluator_validation = EvaluatorHoldout(self.URM_validation, cutoff_list=[10])
+        self.URM_train_boost, self.URM_validation = split_train_in_two_percentage_global_sample(self.URM_train, train_percentage=0.8)
+        self.evaluator_validation = EvaluatorHoldout(self.URM_validation, cutoff_list=[10])
         self.evaluator_test = EvaluatorHoldout(self.URM_test, cutoff_list=[10])
 
     def generate_model(self, model_name, optuna_hpp):

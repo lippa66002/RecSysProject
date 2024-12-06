@@ -27,7 +27,7 @@ optuna_params = controller.optunizer(ModelName.DifferentLossScoresHybridRecommen
 
 recommender_instance = controller.generate_model(ModelName.DifferentLossScoresHybridRecommender, optuna_params)
 
-recommender_instance.save_model(folder_path="_saved_models")
+
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
 print(result_df)

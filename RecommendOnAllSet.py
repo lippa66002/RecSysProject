@@ -6,6 +6,7 @@ from Evaluation.Evaluator import EvaluatorHoldout
 import optuna
 import pandas as pd
 
+from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.HybridDifferentLossFunctions import DifferentLossScoresHybridRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
@@ -60,14 +61,17 @@ recommender_instance = SLIMElasticNetRecommender(controller.URM_all)
 recommender_instance.fit(alpha= 0.0002769050189773266, topK = 979, l1_ratio= 0.15715596524094688)
 """
 
-model1 = ItemKNNCFRecommender(controller.URM_train)
+
+model1 = RP3betaRecommender(controller.URM_train)
 model2 = SLIMElasticNetRecommender(controller.URM_train)
 
-model1.load_model(folder_path="_saved_models", file_name="ItemKNNCFRecommender")
+model1.load_model(folder_path="_saved_models", file_name="RP3betaRecommender")
 model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
-recommender_instance = DifferentLossScoresHybridRecommender(controller.URM_train, model1, model2)
-recommender_instance.fit(norm= 1, alpha= 0.0029154147461754767)
+recommender_instance = DifferentLossScoresHybridRecommender(controller.URM_all, model1, model2)
+recommender_instance.fit(norm= 2, alpha= 0.0007840181667886983)
 
+
+recommender_instance.save_model(folder_path="_saved_models")
 
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)

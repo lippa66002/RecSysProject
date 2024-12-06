@@ -93,8 +93,8 @@ for group_id in range(0, 20):
                                        "UserKNNCF": UserKNNCFRecommender,
                                        "ItemKNNCF": ItemKNNCFRecommender,
                                        "RP3beta": RP3betaRecommender,
-
-
+                                       "SLIM_BPR": SLIM_BPR_Cython,
+                                       "SLIM_ElasticNet": SLIMElasticNetRecommender
                                        }
 
     content_recommender_class = {"ItemKNNCBF": ItemKNNCBFRecommender,
@@ -109,9 +109,12 @@ for group_id in range(0, 20):
             recommender_object.fit(similarity= "cosine", topK= 8, shrink= 12)
         elif recommender_object.RECOMMENDER_NAME == "USER":
             recommender_object.fit(similarity= "dice", topK= 19, shrink= 737)
-
         elif recommender_object.RECOMMENDER_NAME == "RP3beta":
             recommender_object.fit(topK= 12, alpha= 0.5769111396825488, beta= 0.0019321798490027353)
+        elif recommender_object.RECOMMENDER_NAME == "SLIM_BPR":
+            recommender_object.fit(topK= 11, learning_rate= 0.04193849345153912, lambda_i= 0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric= True, sgd_mode= 'adagrad')
+        elif recommender_object.RECOMMENDER_NAME == "SLIM_ElasticNet":
+            recommender_object.fit(alpha= 0.0002021210695683939, topK = 856, l1_ratio= 0.23722934371355184)
         else:
             recommender_object.fit()
 

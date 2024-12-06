@@ -10,5 +10,6 @@ recommender_params = {
     "slim_bpr+slim_en": (0.10068617418107022) {'topK': 340, 'alpha': 4.464670628236134e-05}
     "SLIM_EN+item_cf_cbf": (0.10119343732433732) {'norm': 1, 'alpha': 0.0003942957276686053}
     "SLIM_EN + ItemKNNCF on different loss": norm= 1, alpha= 0.0029154147461754767
+    "SLIM_EN + rp3beta": norm= 2, alpha= 0.0007840181667886983
 
 }
