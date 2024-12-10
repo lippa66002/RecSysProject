@@ -87,9 +87,9 @@ for group_id in range(0, 20):
         users_in_group_p_len.min(),
         users_in_group_p_len.max()))
 
-    MAP_recommender_per_group = {}
+MAP_recommender_per_group = {}
 
-    collaborative_recommender_class = {"TopPop": TopPop,
+collaborative_recommender_class = {"TopPop": TopPop,
                                        "UserKNNCF": UserKNNCFRecommender,
                                        "ItemKNNCF": ItemKNNCFRecommender,
                                        "RP3beta": RP3betaRecommender,
@@ -97,47 +97,55 @@ for group_id in range(0, 20):
                                        "SLIM_ElasticNet": SLIMElasticNetRecommender
                                        }
 
-    content_recommender_class = {"ItemKNNCBF": ItemKNNCBFRecommender,
+content_recommender_class = {"ItemKNNCBF": ItemKNNCBFRecommender,
                                  "ItemKNNCFCBF": ItemKNN_CFCBF_Hybrid_Recommender
                                  }
 
-    recommender_object_dict = {}
+recommender_object_dict = {}
 
-    for label, recommender_class in collaborative_recommender_class.items():
-        recommender_object = recommender_class(URM_train)
-        if recommender_object.RECOMMENDER_NAME == "ItemKNNCF":
-            recommender_object.fit(similarity= "cosine", topK= 8, shrink= 12)
-        elif recommender_object.RECOMMENDER_NAME == "USER":
-            recommender_object.fit(similarity= "dice", topK= 19, shrink= 737)
-        elif recommender_object.RECOMMENDER_NAME == "RP3beta":
-            recommender_object.fit(topK= 12, alpha= 0.5769111396825488, beta= 0.0019321798490027353)
-        elif recommender_object.RECOMMENDER_NAME == "SLIM_BPR":
-            recommender_object.fit(topK= 11, learning_rate= 0.04193849345153912, lambda_i= 0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric= True, sgd_mode= 'adagrad')
-        elif recommender_object.RECOMMENDER_NAME == "SLIM_ElasticNet":
-            recommender_object.fit(alpha= 0.0002021210695683939, topK = 856, l1_ratio= 0.23722934371355184)
-        else:
-            recommender_object.fit()
-
-
+for label, recommender_class in collaborative_recommender_class.items():
+    recommender_object = recommender_class(URM_train)
+    if recommender_object.RECOMMENDER_NAME == "ItemKNNCFRecommender":
+        recommender_object.fit(similarity= "cosine", topK= 8, shrink= 12)
         recommender_object_dict[label] = recommender_object
 
-    for label, recommender_class in content_recommender_class.items():
-        recommender_object = recommender_class(URM_trainval, ICM_all)
+    elif recommender_object.RECOMMENDER_NAME == "UserKNNCFRecommender":
+        recommender_object.fit(similarity= "dice", topK= 19, shrink= 737)
+        recommender_object_dict[label] = recommender_object
+
+    elif recommender_object.RECOMMENDER_NAME == "RP3betaRecommender":
+        recommender_object.fit(topK= 12, alpha= 0.5769111396825488, beta= 0.0019321798490027353)
+        recommender_object_dict[label] = recommender_object
+
+    elif recommender_object.RECOMMENDER_NAME == "SLIM_BPR_Recommender":
+        recommender_object.fit(topK= 11, learning_rate= 0.04193849345153912, lambda_i= 0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric= True, sgd_mode= 'adagrad')
+        recommender_object_dict[label] = recommender_object
+
+    elif recommender_object.RECOMMENDER_NAME == "SLIMElasticNetRecommender":
+        recommender_object.load_model(folder_path="_saved_models", file_name="SLIM_ElasticNetTrain")
+        recommender_object_dict[label] = recommender_object
+
+    else:
         recommender_object.fit()
         recommender_object_dict[label] = recommender_object
 
-        cutoff = 10
+for label, recommender_class in content_recommender_class.items():
+    recommender_object = recommender_class(URM_trainval, ICM_all)
+    recommender_object.fit()
+    recommender_object_dict[label] = recommender_object
 
-        for group_id in range(0, 20):
+cutoff = 10
 
-            start_pos = group_id * block_size
-            end_pos = min((group_id + 1) * block_size, len(profile_length))
+for group_id in range(0, 20):
 
-            users_in_group = sorted_users[start_pos:end_pos]
+    start_pos = group_id * block_size
+    end_pos = min((group_id + 1) * block_size, len(profile_length))
 
-            users_in_group_p_len = profile_length[users_in_group]
+    users_in_group = sorted_users[start_pos:end_pos]
 
-            print("Group {}, #users in group {}, average p.len {:.2f}, median {}, min {}, max {}".format(
+    users_in_group_p_len = profile_length[users_in_group]
+
+    print("Group {}, #users in group {}, average p.len {:.2f}, median {}, min {}, max {}".format(
                 group_id,
                 users_in_group.shape[0],
                 users_in_group_p_len.mean(),
@@ -145,26 +153,26 @@ for group_id in range(0, 20):
                 users_in_group_p_len.min(),
                 users_in_group_p_len.max()))
 
-            users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
-            users_not_in_group = sorted_users[users_not_in_group_flag]
+    users_not_in_group_flag = np.isin(sorted_users, users_in_group, invert=True)
+    users_not_in_group = sorted_users[users_not_in_group_flag]
 
-            evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[cutoff], ignore_users=users_not_in_group)
+    evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[cutoff], ignore_users=users_not_in_group)
 
-            for label, recommender in recommender_object_dict.items():
-                result_df, _ = evaluator_test.evaluateRecommender(recommender)
-                if label in MAP_recommender_per_group:
-                    MAP_recommender_per_group[label].append(result_df.loc[cutoff]["MAP"])
-                else:
-                    MAP_recommender_per_group[label] = [result_df.loc[cutoff]["MAP"]]
-
-
+    for label, recommender in recommender_object_dict.items():
+        result_df, _ = evaluator_test.evaluateRecommender(recommender)
+        if label in MAP_recommender_per_group:
+            MAP_recommender_per_group[label].append(result_df.loc[cutoff]["MAP"])
+        else:
+            MAP_recommender_per_group[label] = [result_df.loc[cutoff]["MAP"]]
 
 
-        _ = plt.figure(figsize=(16, 9))
-        for label, recommender in recommender_object_dict.items():
-            results = MAP_recommender_per_group[label]
-            plt.scatter(x=np.arange(0, len(results)), y=results, label=label)
-        plt.ylabel('MAP')
-        plt.xlabel('User Group')
-        plt.legend()
-        plt.show()
+
+
+_ = plt.figure(figsize=(16, 9))
+for label, recommender in recommender_object_dict.items():
+    results = MAP_recommender_per_group[label]
+    plt.scatter(x=np.arange(0, len(results)), y=results, label=label)
+plt.ylabel('MAP')
+plt.xlabel('User Group')
+plt.legend()
+plt.show()
