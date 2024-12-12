@@ -104,21 +104,21 @@ content_recommender_class = {"ItemKNNCBF": ItemKNNCBFRecommender,
 recommender_object_dict = {}
 
 for label, recommender_class in collaborative_recommender_class.items():
-    recommender_object = recommender_class(URM_train)
+    recommender_object = recommender_class(URM_trainval)
     if recommender_object.RECOMMENDER_NAME == "ItemKNNCFRecommender":
-        recommender_object.fit(similarity= "cosine", topK= 8, shrink= 12)
+        recommender_object.load_model(folder_path="_saved_models", file_name="ItemKNNCFTrain")
         recommender_object_dict[label] = recommender_object
 
     elif recommender_object.RECOMMENDER_NAME == "UserKNNCFRecommender":
-        recommender_object.fit(similarity= "dice", topK= 19, shrink= 737)
+        recommender_object.load_model(folder_path="_saved_models", file_name="UserKNNCFTrain")
         recommender_object_dict[label] = recommender_object
 
     elif recommender_object.RECOMMENDER_NAME == "RP3betaRecommender":
-        recommender_object.fit(topK= 12, alpha= 0.5769111396825488, beta= 0.0019321798490027353)
+        recommender_object.load_model(folder_path="_saved_models", file_name="RP3betaRecommender_train")
         recommender_object_dict[label] = recommender_object
 
     elif recommender_object.RECOMMENDER_NAME == "SLIM_BPR_Recommender":
-        recommender_object.fit(topK= 11, learning_rate= 0.04193849345153912, lambda_i= 0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric= True, sgd_mode= 'adagrad')
+        recommender_object.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
         recommender_object_dict[label] = recommender_object
 
     elif recommender_object.RECOMMENDER_NAME == "SLIMElasticNetRecommender":
@@ -131,7 +131,10 @@ for label, recommender_class in collaborative_recommender_class.items():
 
 for label, recommender_class in content_recommender_class.items():
     recommender_object = recommender_class(URM_trainval, ICM_all)
-    recommender_object.fit()
+    if recommender_object.RECOMMENDER_NAME == "ItemKNNCBFRecommender":
+        recommender_object.load_model(folder_path="_saved_models", file_name="ItemKNNCBFRecommender_train")
+    else:
+        recommender_object.load_model(folder_path="_saved_models", file_name="ItemKNN_CFCBF_Hybrid_Recommender_train")
     recommender_object_dict[label] = recommender_object
 
 cutoff = 10

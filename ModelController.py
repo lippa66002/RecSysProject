@@ -13,6 +13,7 @@ from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarit
 from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.MatrixFactorization.Cython.MatrixFactorization_Cython import _MatrixFactorization_Cython
+from Recommenders.MatrixFactorization.IALSRecommender import IALSRecommender
 from Recommenders.MatrixFactorization.PureSVDRecommender import PureSVDRecommender
 from Recommenders.Neural.MultVAE_PyTorch_Recommender import MultVAERecommender_PyTorch
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
@@ -65,6 +66,9 @@ class ModelController:
         elif model_name == ModelName.MultVAERecommender_PyTorch:
             model = MultVAERecommender_PyTorch(self.URM_train)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.IALSRecommender:
+            model = IALSRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
         elif model_name == ModelName.UserKNNCFRecommender:
             model = UserKNNCFRecommender(self.URM_train)
             model.fit(**optuna_hpp)
@@ -92,11 +96,13 @@ class ModelController:
             model = PureSVDRecommender(self.URM_train)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.ScoresHybridRecommender:
-            model1 = SLIM_BPR_Cython(self.URM_train)
+            #model1 = SLIM_BPR_Cython(self.URM_train)
+            model1 = ItemKNNCFRecommender(self.URM_train)
             model2 = SLIMElasticNetRecommender(self.URM_train)
 
-            model1.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
-            model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+            #model1.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender")
+            model1.fit(similarity= "cosine", topK= 8, shrink= 12)
+            model2.load_model(folder_path="_saved_models", file_name="SLIM_ElasticNetTrain")
             model = ScoresHybridRecommender(self.URM_train, model1, model2)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.DifferentLossScoresHybridRecommender:
@@ -121,8 +127,11 @@ class ModelController:
 
     def optunizer(self, model_name):
 
+
         if model_name == ModelName.SLIM_ElasticNet:
             obj_func = self.objective_function_SLIM
+        elif model_name == ModelName.IALSRecommender:
+            obj_func = self.objective_function_IALS
         elif model_name == ModelName.ItemKNNCFRecommender:
             obj_func = self.objective_function_KNN_similarities
         elif model_name == ModelName.RP3betaRecommender:
@@ -148,6 +157,8 @@ class ModelController:
             obj_func = self.objective_function_PureSVD
         elif model_name == ModelName.DifferentLossScoresHybridRecommender:
             obj_func = self.objective_function_hybrid_different_loss_scores
+        elif model_name == ModelName.ScoresHybridRecommender:
+            obj_func = self.objective_function_scores_hybrid
         elif model_name == ModelName.ContentBasedRecommender:
             obj_func = self.objective_function_content_based
         elif model_name == ModelName.MatrixFactorization_Cython_Recommender:
@@ -209,6 +220,22 @@ class ModelController:
                        "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.1, 0.4), #1e-3, 0.6
                        }
         recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+
+        return result_df.loc[10]["MAP"]
+    def objective_function_IALS(self,optuna_trial):
+        recommender_instance = IALSRecommender(self.URM_train)
+        confidence_scaling = optuna_trial.suggest_categorical("confidence_scaling",
+                                                      ['linear', 'log'])
+        full_hyperp = {"num_factors": optuna_trial.suggest_int("num_factors", 10, 200),
+            "confidence_scaling" : confidence_scaling,
+            "alpha": optuna_trial.suggest_float("alpha", 0.1, 50.0),
+            "epsilon": optuna_trial.suggest_float("epsilon", 0.1, 10.0),
+            "reg": optuna_trial.suggest_float("reg", 1e-3, 1e-1),
+
+            "init_std" : optuna_trial.suggest_float("init_std", 0.01, 0.2)}
+        recommender_instance.fit(**full_hyperp)
+
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
 
         return result_df.loc[10]["MAP"]
@@ -399,6 +426,19 @@ class ModelController:
         }
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+    def objective_function_scores_hybrid(self, optuna_trial):
+        model1 = SLIMElasticNetRecommender(self.URM_train)
+        model1.load_model(folder_path="_saved_models", file_name="SLIM_ElasticNetTrain")
+        model2 = ItemKNNCFRecommender(self.URM_train)
+        model2.fit(similarity= "cosine", topK= 8, shrink= 12)
+        recom = ScoresHybridRecommender(self.URM_train, model1, model2)
+        full_hyperp = {
+
+            "alpha": optuna_trial.suggest_float("alpha", 0.0, 1.0)
+        }
+        recom.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recom)
         return result_df.loc[10]["MAP"]
 
     def objective_function_matrixFactorizationCython(self, optuna_trial):
