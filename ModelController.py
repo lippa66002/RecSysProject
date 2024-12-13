@@ -428,14 +428,24 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
     def objective_function_scores_hybrid(self, optuna_trial):
-        model1 = SLIMElasticNetRecommender(self.URM_train)
-        model1.load_model(folder_path="_saved_models", file_name="SLIM_ElasticNetTrain")
-        model2 = ItemKNNCFRecommender(self.URM_train)
-        model2.fit(similarity= "cosine", topK= 8, shrink= 12)
-        recom = ScoresHybridRecommender(self.URM_train, model1, model2)
+        slim = SLIMElasticNetRecommender(self.URM_train)
+        slim.load_model(folder_path="_saved_models", file_name="SLIM_ElasticNetTrain")
+        item = ItemKNNCFRecommender(self.URM_train)
+        item.load_model(folder_path="_saved_models", file_name="ItemKNNCFTrain")
+        rp3 = RP3betaRecommender(self.URM_train)
+        rp3.load_model(folder_path="_saved_models", file_name="RP3betaRecommender_Train")
+        bpr = SLIM_BPR_Cython(self.URM_train)
+        bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
+        items = ItemKNNCFRecommender(self.URM_train)
+        items.load_model(folder_path="_saved_models", file_name="ItemKNNCBFRecommender_train")
+        recom = ScoresHybridRecommender(self.URM_train, slim, item,rp3,bpr,items)
         full_hyperp = {
 
-            "alpha": optuna_trial.suggest_float("alpha", 0.0, 1.0)
+            "alpha": optuna_trial.suggest_float("alpha", 0.0, 1.0),
+            "beta": optuna_trial.suggest_float("beta", 0.0, 1.0),
+            "gamma": optuna_trial.suggest_float("gamma", 0.0, 1.0),
+            "delta": optuna_trial.suggest_float("delta", 0.0, 1.0),
+            "epsilon": optuna_trial.suggest_float("epsilon", 0.0, 1.0)
         }
         recom.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recom)

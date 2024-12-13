@@ -10,21 +10,31 @@ class ScoresHybridRecommender(BaseRecommender):
 
     RECOMMENDER_NAME = "ScoresHybridRecommender"
 
-    def __init__(self, URM_train, recommender_1, recommender_2):
+    def __init__(self, URM_train, recommender_1, recommender_2, recommender_3, recommender_4, recommender_5):
         super(ScoresHybridRecommender, self).__init__(URM_train)
 
         self.URM_train = sps.csr_matrix(URM_train)
         self.recommender_1 = recommender_1
         self.recommender_2 = recommender_2
+        self.recommender_3 = recommender_3
+        self.recommender_4 = recommender_4
+        self.recommender_5 = recommender_5
 
-    def fit(self, alpha=0.5):
+    def fit(self, alpha, beta, gamma , delta, epsilon):
         self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        self.delta = delta
+        self.epsilon = epsilon
 
     def _compute_item_score(self, user_id_array, items_to_compute):
         # In a simple extension this could be a loop over a list of pretrained recommender objects
         item_weights_1 = self.recommender_1._compute_item_score(user_id_array)
         item_weights_2 = self.recommender_2._compute_item_score(user_id_array)
+        item_weights_3 = self.recommender_3._compute_item_score(user_id_array)
+        item_weights_4 = self.recommender_4._compute_item_score(user_id_array)
+        item_weights_5 = self.recommender_5._compute_item_score(user_id_array)
 
-        item_weights = item_weights_1 * self.alpha + item_weights_2 * (1 - self.alpha)
+        item_weights = item_weights_1 * self.alpha + item_weights_2 * self.beta + item_weights_3 * self.gamma + item_weights_4 * self.delta + item_weights_5 * self.epsilon
 
         return item_weights
