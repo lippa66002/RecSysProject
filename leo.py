@@ -1,10 +1,10 @@
 import DataHandler
 from ModelController import ModelController
-from ModelNames import ModelName
-from Data_manager.split_functions.split_train_validation_random_holdout import split_train_in_two_percentage_global_sample
-from Evaluation.Evaluator import EvaluatorHoldout
-import optuna
 import pandas as pd
+import scipy.sparse as sps
+
+
+from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 
 URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",
@@ -22,24 +22,8 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
-
-optuna_params = controller.optunizer(ModelName.SLIM_ElasticNet)
-
-recommender_instance = controller.generate_model(ModelName.SLIM_ElasticNet, optuna_params)
-
-recommender_instance.save_model(folder_path="_saved_models")
-
-result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
-print(result_df)
-
-cutoff = 10  # Numero di raccomandazioni da generare
-recommendations_list = []
-for user_id in users["user_id"]:
-    recommendations = recommender_instance.recommend(user_id, cutoff=cutoff)
-    recommendations_list.append([user_id, recommendations])
-
-
-#result_df, _ = evaluator_validation.evaluateRecommender(recommender_instance)
-print (result_df.loc[10]["MAP"])
-df_recommendations = pd.DataFrame(recommendations_list, columns=['user_id', 'item_list'])
-df_recommendations.to_csv('recomm.csv', index=False)
+stacked = sps.vstack(controller.URM_train, ICM_all.T)
+slim = SLIMElasticNetRecommender(stacked)
+slim.fit (alpha =  0.00022742003969239836, topK =  709, l1_ratio =  0.1488442906776265)
+dd, _ = controller.evaluator_test.evaluateRecommender(slim)
+print(dd.loc[10]["MAP"])
