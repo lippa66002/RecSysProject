@@ -1,3 +1,5 @@
+import numpy as np
+
 import DataHandler
 from ModelController import ModelController
 import pandas as pd
@@ -21,8 +23,10 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
+
 controller = ModelController(URM_all, ICM_all)
-stacked = sps.vstack(controller.URM_train, ICM_all.T)
+stacked = sps.vstack([controller.URM_train, controller.ICM_all.T])
+
 slim = SLIMElasticNetRecommender(stacked)
 slim.fit (alpha =  0.00022742003969239836, topK =  709, l1_ratio =  0.1488442906776265)
 dd, _ = controller.evaluator_test.evaluateRecommender(slim)
