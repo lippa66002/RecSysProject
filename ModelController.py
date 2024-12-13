@@ -21,6 +21,7 @@ from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommende
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 import optuna
 from ModelNames import ModelName
+import scipy.sparse as sps
 import pandas as pd
 
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
@@ -214,10 +215,14 @@ class ModelController:
 
     def objective_function_SLIM(self, optuna_trial):
 
-        recommender_instance = SLIMElasticNetRecommender(self.URM_train)
-        full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 0.0001, 0.0003, log=True), #1e-5, 1e-3
+        stacked = sps.vstack([self.URM_train, self.ICM_all.T]).tocsr()
+        print(f"Type of self.URM_train: {type(self.URM_train)}")
+        print(f"Type of self.ICM_all.T: {type(self.ICM_all.T)}")
+
+        recommender_instance = SLIMElasticNetRecommender(stacked)
+        full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 0.0001, 1, log=True), #1e-5, 1e-3 #fino a 0.0003
                        "topK": optuna_trial.suggest_int("topK", 600, 1000), #5, 1000
-                       "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.1, 0.4), #1e-3, 0.6
+                       "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.0001, 1), #1e-3, 0.6 #fino a 0.4
                        }
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)

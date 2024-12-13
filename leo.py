@@ -5,7 +5,7 @@ from ModelController import ModelController
 import pandas as pd
 import scipy.sparse as sps
 
-
+from ModelNames import ModelName
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 
@@ -25,9 +25,4 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 
 controller = ModelController(URM_all, ICM_all)
-stacked = sps.vstack([controller.URM_train, controller.ICM_all.T])
-
-slim = SLIMElasticNetRecommender(stacked)
-slim.fit (alpha =  0.00022742003969239836, topK =  709, l1_ratio =  0.1488442906776265)
-dd, _ = controller.evaluator_test.evaluateRecommender(slim)
-print(dd.loc[10]["MAP"])
+optunapar = controller.optunizer(ModelName.SLIM_ElasticNet)
