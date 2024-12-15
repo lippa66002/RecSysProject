@@ -7,6 +7,7 @@ from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 from Recommenders.NonPersonalizedRecommender import TopPop
+from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 from xgboost import XGBRanker
 from tqdm import tqdm
@@ -28,4 +29,5 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
-optunapar = controller.optunizer(ModelName.IALSRecommender)
+#optunapar = controller.optunizer(ModelName.IALSRecommender)
+optunapar = controller.optunizer(ModelName.SLIM_BPR_Recommender)
