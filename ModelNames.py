@@ -12,6 +12,7 @@ class ModelName(Enum):
     HybridOptunable2 = "HybridOptunable2"
     EASE_R_Recommender = "EASE_R_Recommender"
     MultVAERecommender_PyTorch = "MultVAERecommender_PyTorch"
+    MultVAERecommender = "MultVAERecommender"
     UserKNNCFRecommender = "UserKNNCFRecommender"
     Hybrid_ItemKNN_CF_CBF = "Hybrid_ItemKNN_CF_CBF"#teniamo
     ItemKNNSimilarityHybridRecommender = "ItemKNNSimilarityHybridRecommender"
@@ -24,4 +25,6 @@ class ModelName(Enum):
     MatrixFactorization_Cython_Recommender = "MatrixFactorization_Cython_Recommender"
     IALSRecommender = "IALSRecommender"
 
+    ItemKNNCBFRecommender = "ItemKNNCBFRecommender"
+    CFW_DVV_Similarity_Cython = "CFW_DVV_Similarity_Cython"
 

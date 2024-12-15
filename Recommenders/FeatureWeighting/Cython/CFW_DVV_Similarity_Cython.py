@@ -30,7 +30,7 @@ class CFW_DVV_Similarity_Cython(BaseItemCBFRecommender, BaseItemSimilarityMatrix
 
     def __init__(self, URM_train, ICM, S_matrix_target):
 
-        super(CFW_DVV_Similarity_Cython, self).__init__(URM_train)
+        super(CFW_DVV_Similarity_Cython, self).__init__(URM_train, ICM)
 
         self.ICM = check_matrix(ICM, 'csr')
         self.n_features = self.ICM.shape[1]
@@ -52,7 +52,7 @@ class CFW_DVV_Similarity_Cython(BaseItemCBFRecommender, BaseItemSimilarityMatrix
             sgd_mode='adagrad', gamma = 0.9, beta_1=0.9, beta_2=0.999,
             **earlystopping_kwargs):
 
-        from FeatureWeighting.Cython.CFW_DVV_Similarity_Cython_SGD import CFW_DVV_Similarity_Cython_SGD
+        from Recommenders.FeatureWeighting.Cython.CFW_DVV_Similarity_Cython_SGD import CFW_DVV_Similarity_Cython_SGD
 
         if initialization_mode_D not in self.INIT_TYPE_VALUES:
            raise ValueError("Value for 'initialization_mode_D' not recognized. Acceptable values are {}, provided was '{}'".format(self.INIT_TYPE_VALUES, initialization_mode_D))
@@ -132,7 +132,7 @@ class CFW_DVV_Similarity_Cython(BaseItemCBFRecommender, BaseItemSimilarityMatrix
 
         self.compute_W_sparse(model_to_use = "best")
 
-        sys.stdout.flush()
+        sys.stdout.flush
 
 
 

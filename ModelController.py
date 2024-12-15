@@ -2,6 +2,7 @@ from Data_manager.split_functions.split_train_validation_random_holdout import \
     split_train_in_two_percentage_global_sample
 from Evaluation.Evaluator import EvaluatorHoldout
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
+from Recommenders.FeatureWeighting.Cython.CFW_DVV_Similarity_Cython import CFW_DVV_Similarity_Cython
 from Recommenders.FeatureWeighting.Cython.CFW_D_Similarity_Cython import CFW_D_Similarity_Cython
 from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
@@ -15,6 +16,7 @@ from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.MatrixFactorization.Cython.MatrixFactorization_Cython import _MatrixFactorization_Cython
 from Recommenders.MatrixFactorization.IALSRecommender import IALSRecommender
 from Recommenders.MatrixFactorization.PureSVDRecommender import PureSVDRecommender
+from Recommenders.Neural.MultVAERecommender import MultVAERecommender
 from Recommenders.Neural.MultVAE_PyTorch_Recommender import MultVAERecommender_PyTorch
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
@@ -65,7 +67,10 @@ class ModelController:
             #model = HybridOptunable2(self.URM_train)
             #model.fit(**optuna_hpp)
         elif model_name == ModelName.MultVAERecommender_PyTorch:
-            model = MultVAERecommender_PyTorch(self.URM_train)
+            model = MultVAERecommender_PyTorch(self.URM_train, use_gpu=True)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.MultVAERecommender:
+            model = MultVAERecommender(self.URM_train)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.IALSRecommender:
             model = IALSRecommender(self.URM_train)
@@ -120,6 +125,14 @@ class ModelController:
         elif model_name == ModelName.MatrixFactorization_Cython_Recommender:
             model = _MatrixFactorization_Cython(self.URM_train)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.ItemKNNCBFRecommender:
+            model = ItemKNNCBFRecommender(self.URM_train, self.ICM_all)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.CFW_DVV_Similarity_Cython:
+            model = SLIMElasticNetRecommender(self.URM_train)
+            model.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+            model = CFW_DVV_Similarity_Cython(self.URM_train, self.ICM_all, model.W_sparse)
+            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -143,6 +156,8 @@ class ModelController:
             #obj_func = self.objective_function_hybridOptunable2
             obj_func = self.obj_hybrid
         elif model_name == ModelName.MultVAERecommender_PyTorch:
+            obj_func = self.objective_function_multVAE_pytorch
+        elif model_name == ModelName.MultVAERecommender:
             obj_func = self.objective_function_multVAE
         elif model_name == ModelName.UserKNNCFRecommender:
             obj_func = self.objective_function_userKNN
@@ -164,6 +179,10 @@ class ModelController:
             obj_func = self.objective_function_content_based
         elif model_name == ModelName.MatrixFactorization_Cython_Recommender:
             obj_func = self.objective_function_matrixFactorizationCython
+        elif model_name == ModelName.ItemKNNCBFRecommender:
+            obj_func = self.objective_function_itemKNNCBF
+        elif model_name == ModelName.CFW_DVV_Similarity_Cython:
+            obj_func = self.objective_function_CFW_DVV_Similarity_Cython
         else:
             raise ValueError("Model not found")
 
@@ -276,10 +295,25 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_object)
         return result_df.loc[10]["MAP"]
 
-    def objective_function_multVAE(self, optuna_trial):
+    def objective_function_multVAE_pytorch(self, optuna_trial):
         recommender_instance = MultVAERecommender_PyTorch(self.URM_train, use_gpu=True)
         full_hyperp = {
-            "epochs": optuna_trial.suggest_int("epochs", 10, 100),
+            #"epochs": optuna_trial.suggest_int("epochs", 10, 100),
+            "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True),
+            "batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
+            "dropout": optuna_trial.suggest_float("dropout", 0.1, 0.5),
+            "total_anneal_steps": optuna_trial.suggest_int("total_anneal_steps", 10000, 200000),
+            "anneal_cap": optuna_trial.suggest_float("anneal_cap", 0.1, 0.5),
+            "p_dims": [self.URM_train.shape[1], self.URM_train.shape[1]]
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_multVAE(self, optuna_trial):
+        recommender_instance = MultVAERecommender(self.URM_train)
+        full_hyperp = {
+            #"epochs": optuna_trial.suggest_int("epochs", 10, 100),
             "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True),
             "batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
             "dropout": optuna_trial.suggest_float("dropout", 0.1, 0.5),
@@ -432,6 +466,55 @@ class ModelController:
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
+
+    def objective_function_itemKNNCBF(self, optuna_trial):
+        recommender_instance = ItemKNNCBFRecommender(self.URM_train, self.ICM_all)
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
+            "similarity": optuna_trial.suggest_categorical("similarity",
+                                                           ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky',
+                                                            'euclidean']),
+            "normalize": optuna_trial.suggest_categorical("normalize", [True, False]),
+            "feature_weighting": optuna_trial.suggest_categorical("feature_weighting", ["BM25", "TF-IDF", "none"])
+        }
+
+        if full_hyperp["similarity"] == "asymmetric":
+            full_hyperp["asymmetric_alpha"] = optuna_trial.suggest_float("asymmetric_alpha", 0, 2, log=False)
+
+        elif full_hyperp["similarity"] == "tversky":
+            full_hyperp["tversky_alpha"] = optuna_trial.suggest_float("tversky_alpha", 0, 2, log=False)
+            full_hyperp["tversky_beta"] = optuna_trial.suggest_float("tversky_beta", 0, 2, log=False)
+
+        elif full_hyperp["similarity"] == "euclidean":
+            full_hyperp["normalize_avg_row"] = optuna_trial.suggest_categorical("normalize_avg_row", [True, False])
+            full_hyperp["similarity_from_distance_mode"] = optuna_trial.suggest_categorical(
+                "similarity_from_distance_mode", ["lin", "log", "exp"])
+
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_CFW_DVV_Similarity_Cython(self, optuna_trial):
+        model = SLIMElasticNetRecommender(self.URM_train)
+        model.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+        recommender_instance = CFW_DVV_Similarity_Cython(self.URM_train, self.ICM_all, model.W_sparse)
+
+        full_hyperp = {
+            "n_factors": optuna_trial.suggest_int("n_factors", 10, 100),
+            "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True),
+            "l2_reg_D": optuna_trial.suggest_float("l2_reg_D", 1e-5, 1e-2, log=True),
+            "l2_reg_V": optuna_trial.suggest_float("l2_reg_V", 1e-5, 1e-2, log=True),
+            "epochs": optuna_trial.suggest_int("epochs", 10, 50),
+            "topK": optuna_trial.suggest_int("topK", 50, 500),
+            "positive_only_weights": optuna_trial.suggest_categorical("positive_only_weights", [True, False]),
+            "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["adam", "adagrad"]),
+        }
+
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
     def objective_function_scores_hybrid(self, optuna_trial):
         slim = SLIMElasticNetRecommender(self.URM_train)
         slim.load_model(folder_path="_saved_models", file_name="SLIM_ElasticNetTrain")
