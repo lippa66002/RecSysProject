@@ -82,7 +82,7 @@ def objective_function_KNN_similarities(optuna_trial):
 
     result_df, _ = evaluator_test.evaluateRecommender(recommender_instance)
     return result_df.loc[10]["MAP"]
-for group_id in range(0, 20):
+for group_id in range(15, 20):
     print("Group {}".format(group_id))
 
     start_pos = group_id * block_size
