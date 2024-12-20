@@ -1,21 +1,13 @@
 import optuna
 
-
 import DataHandler
 from ModelController import ModelController
 import pandas as pd
-from Evaluation.Evaluator import EvaluatorHoldout
-from Data_manager.split_functions.split_train_validation_random_holdout import split_train_in_two_percentage_global_sample
 from ModelNames import ModelName
-from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
-from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
-from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
-from Recommenders.KNN.UserKNNCBFRecommender import UserKNNCBFRecommender
-from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
-from Recommenders.NonPersonalizedRecommender import TopPop
-from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
-from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 
+
+print("Start")
+from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 
 
 URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",

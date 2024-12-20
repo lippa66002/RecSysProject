@@ -3,16 +3,7 @@ import pandas as pd
 import DataHandler
 from ModelController import ModelController
 from ModelNames import ModelName
-from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
-from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
-from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
-from Recommenders.NonPersonalizedRecommender import TopPop
-from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
-from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
-from xgboost import XGBRanker
-from tqdm import tqdm
-import scipy.sparse as sps
-import numpy as np
+
 
 from Recommenders.MatrixFactorization.IALSRecommender import IALSRecommender
 

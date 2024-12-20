@@ -383,16 +383,18 @@ class ModelController:
 
     def objective_function_SLIM_BPR_Cython(self, optuna_trial):
         recommender_instance = SLIM_BPR_Cython(self.URM_train)
-        full_hyperp = {
+        '''full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
             "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True),
             "lambda_i": optuna_trial.suggest_float("lambda_i", 1e-4, 1e-2, log=True),
             "lambda_j": optuna_trial.suggest_float("lambda_j", 1e-4, 1e-2, log=True),
+            
             #"batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
             "symmetric": optuna_trial.suggest_categorical("symmetric", [True, False]),
             "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["sgd", "adagrad", "adam"]),
-        }
-        recommender_instance.fit(**full_hyperp)
+            "epochs": optuna_trial.suggest_int("epochs", 100, 1000)
+        }'''
+        recommender_instance.fit(optuna_trial.suggest_int("epochs", 100 , 1000),topK =  11, learning_rate= 0.04193849345153912, lambda_i= 0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric= True, sgd_mode= 'adagrad')
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
@@ -523,26 +525,45 @@ class ModelController:
 
     def objective_function_scores_hybrid(self, optuna_trial):
         slim = SLIMElasticNetRecommender(self.URM_train)
-        slim.load_model(folder_path="_saved_models", file_name="SLIM_ElasticNetTrain")
-        item = ItemKNNCFRecommender(self.URM_train)
-        item.load_model(folder_path="_saved_models", file_name="ItemKNNCFTrain")
-        rp3 = RP3betaRecommender(self.URM_train)
-        rp3.load_model(folder_path="_saved_models", file_name="RP3betaRecommender_Train")
         bpr = SLIM_BPR_Cython(self.URM_train)
-        bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-        items = ItemKNNCFRecommender(self.URM_train)
-        items.load_model(folder_path="_saved_models", file_name="ItemKNNCBFRecommender_train")
-        recom = ScoresHybridRecommender(self.URM_train, slim, item,rp3,bpr,items)
-        full_hyperp = {
+        bpr.fit(topK =  11, learning_rate =  0.04193849345153912, lambda_i=  0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric =  True, sgd_mode =  'adagrad')
+        slim.fit(alpha =  0.00022742003969239836, topK =  709, l1_ratio =  0.1488442906776265)
+        item = ItemKNNCFRecommender(self.URM_train)
+        item.fit(similarity =  "cosine", topK =  8, shrink= 12)
+        rp3 = RP3betaRecommender(self.URM_train)
+        rp3.fit(topK= 12, alpha =  0.5769111396825488, beta= 0.0019321798490027353)
+        user = UserKNNCFRecommender(self.URM_train)
+        user.fit(similarity =  "dice", topK= 19, shrink= 737)
+        items = ItemKNNCBFRecommender(self.URM_train, self.ICM_all)
+        items.load_model.fit()
+        hyb = ItemKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+        hyb.fit(topK =  6, shrink =  167, similarity =  'asymmetric', normalize =  False, feature_weighting =  'BM25', ICM_weight =  0.375006792830105)
+        #bpr = SLIM_BPR_Cython(self.URM_train)
+        #bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
+        recom1 = ScoresHybridRecommender(self.URM_train, slim, item,rp3,bpr,items)
+        recom2 = ScoresHybridRecommender(self.URM_train, slim, bpr,rp3,bpr,items)
+        recom3 = ScoresHybridRecommender(self.URM_train, slim, items,rp3,bpr,items)
+        recom4 = ScoresHybridRecommender(self.URM_train, slim, hyb,rp3,bpr,items)
+        recom5 = ScoresHybridRecommender(self.URM_train, slim, rp3,rp3,bpr,items)
+        recom6 = ScoresHybridRecommender(self.URM_train, slim, user,rp3,bpr,items)
+
+        '''full_hyperp = {
 
             "alpha": optuna_trial.suggest_float("alpha", 0.0, 1.0),
             "beta": optuna_trial.suggest_float("beta", 0.0, 1.0),
             "gamma": optuna_trial.suggest_float("gamma", 0.0, 1.0),
             "delta": optuna_trial.suggest_float("delta", 0.0, 1.0),
             "epsilon": optuna_trial.suggest_float("epsilon", 0.0, 1.0)
-        }
-        recom.fit(**full_hyperp)
-        result_df, _ = self.evaluator_test.evaluateRecommender(recom)
+        }'''
+        alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
+        beta= optuna_trial.suggest_float("beta", 0.0, 1.0)
+        recom1.fit(alpha,beta,0,0,0)
+        recom2.fit(alpha, beta, 0, 0, 0)
+        recom3.fit(alpha, beta, 0, 0, 0)
+        recom4.fit(alpha, beta, 0, 0, 0)
+        recom5.fit(alpha, beta, 0, 0, 0)
+        recom6.fit(alpha, beta, 0, 0, 0)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recom1)
         return result_df.loc[10]["MAP"]
 
     def objective_function_matrixFactorizationCython(self, optuna_trial):
