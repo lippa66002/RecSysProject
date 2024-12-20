@@ -21,4 +21,4 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 #optunapar = controller.optunizer(ModelName.IALSRecommender)
-optunapar = controller.optunizer(ModelName.SLIM_BPR_Recommender)
+optunapar = controller.optunizer(ModelName.SLIM_ElasticNet)
