@@ -244,7 +244,7 @@ class ModelController:
         print(f"Type of self.URM_train: {type(self.URM_train)}")
         print(f"Type of self.ICM_all.T: {type(self.ICM_all.T)}")
 
-        recommender_instance = SLIMElasticNetRecommender(self.URM_train)
+        recommender_instance = SLIMElasticNetRecommender(stacked)
         full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 0.0001, 0.0003, log=True), #1e-5, 1e-3 #fino a 0.0003
                        "topK": optuna_trial.suggest_int("topK", 600, 1000), #5, 1000
                        "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.0001, 0.4), #1e-3, 0.6 #fino a 0.4
