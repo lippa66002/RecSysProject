@@ -383,18 +383,15 @@ class ModelController:
 
     def objective_function_SLIM_BPR_Cython(self, optuna_trial):
         recommender_instance = SLIM_BPR_Cython(self.URM_train)
-        '''full_hyperp = {
+        full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
             "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True),
             "lambda_i": optuna_trial.suggest_float("lambda_i", 1e-4, 1e-2, log=True),
             "lambda_j": optuna_trial.suggest_float("lambda_j", 1e-4, 1e-2, log=True),
-            
-            #"batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
             "symmetric": optuna_trial.suggest_categorical("symmetric", [True, False]),
-            "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["sgd", "adagrad", "adam"]),
-            "epochs": optuna_trial.suggest_int("epochs", 100, 1000)
-        }'''
-        recommender_instance.fit(optuna_trial.suggest_int("epochs", 100 , 1000),topK =  11, learning_rate= 0.04193849345153912, lambda_i= 0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric= True, sgd_mode= 'adagrad')
+            "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["sgd", "adagrad", "adam"])
+        }
+        recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 

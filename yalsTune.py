@@ -18,4 +18,4 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
-optuna_params = controller.optunizer(ModelName.SLIM_ElasticNet)
+optuna_params = controller.optunizer(ModelName.SLIM_BPR_Recommender)
