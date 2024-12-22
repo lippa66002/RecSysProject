@@ -1,5 +1,6 @@
 
 import DataHandler
+from ModelNames import ModelName
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 
 from ModelController import ModelController
@@ -20,7 +21,4 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
-ease = EASE_R_Recommender(controller.URM_train)
-ease.fit()
-dd, _ = controller.evaluator_test.evaluateRecommender(ease)
-print(dd.loc[10]["MAP"])
+optuna = controller.optunizer(ModelName.EASE_R_Recommender)
