@@ -1,9 +1,10 @@
+import numpy as np
 
 from ModelController import ModelController
 from ModelNames import ModelName
 import pandas as pd
 import DataHandler
-
+from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
 
 URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",
                                 sep=",",
@@ -18,4 +19,8 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
-optuna_params = controller.optunizer(ModelName.SLIM_BPR_Recommender)
+item = ItemKNNCFRecommender(controller.URM_train)
+item.fit(similarity =  "cosine", topK =  8, shrink= 12)
+item.save_model(folder_path="_saved_models", file_name = "uaua")
+
+
