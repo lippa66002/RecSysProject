@@ -5,6 +5,7 @@ Created on 23/10/17
 
 @author: Maurizio Ferrari Dacrema
 """
+from scipy.sparse.linalg import spsolve
 
 from Recommenders.BaseSimilarityMatrixRecommender import BaseItemSimilarityMatrixRecommender
 from Recommenders.Recommender_utils import similarityMatrixTopK, check_matrix
@@ -13,7 +14,8 @@ from sklearn.preprocessing import normalize
 import numpy as np
 import time
 import scipy.sparse as sps
-
+from scipy.sparse.linalg import inv
+from scipy.sparse import diags
 from Recommenders.Similarity.Compute_Similarity import Compute_Similarity
 
 
@@ -38,7 +40,9 @@ class EASE_R_Recommender(BaseItemSimilarityMatrixRecommender):
         super(EASE_R_Recommender, self).__init__(URM_train)
         self.sparse_threshold_quota = sparse_threshold_quota
 
-    def fit(self, topK=None, l2_norm = 1e3, normalize_matrix = False, verbose = True):
+    from scipy.sparse.linalg import spsolve
+
+    def fit(self, topK=None, l2_norm=1e3, normalize_matrix=False, verbose=True):
 
         self.verbose = verbose
 
@@ -51,50 +55,41 @@ class EASE_R_Recommender(BaseItemSimilarityMatrixRecommender):
             self.URM_train = normalize(self.URM_train, norm='l2', axis=0)
             self.URM_train = sps.csr_matrix(self.URM_train)
 
+        # Grahm matrix is X^t X, compute dot product
+        similarity = Compute_Similarity(
+            self.URM_train, shrink=0, topK=100, normalize=False, similarity="cosine"
+        )
 
-        # Grahm matrix is X X^t, compute dot product
-        similarity = Compute_Similarity(self.URM_train, shrink=0, topK=self.URM_train.shape[1], normalize=False, similarity = "cosine")
-        grahm_matrix = similarity.compute_similarity().toarray()
+        # Compute similarity and apply Top-K in sparse format
+        mat = similarity.compute_similarity()
+        grahm_matrix_sparse = similarityMatrixTopK(mat, k=100, verbose=False)
 
-        diag_indices = np.diag_indices(grahm_matrix.shape[0])
+        # Add diagonal terms (item popularity + l2_norm)
+        diag_indices = np.arange(grahm_matrix_sparse.shape[0])
+        item_popularity = np.ediff1d(self.URM_train.tocsc().indptr)
+        grahm_matrix_sparse = grahm_matrix_sparse.tolil()  # Make it modifiable
+        grahm_matrix_sparse[diag_indices, diag_indices] += item_popularity + l2_norm
+        grahm_matrix_sparse = grahm_matrix_sparse.tocsr()  # Convert back to CSR format
 
-        grahm_matrix[diag_indices] += l2_norm
+        # Instead of computing the inverse, solve the linear system
+        identity = sps.identity(grahm_matrix_sparse.shape[0], format='csr')
+        P_sparse = spsolve(grahm_matrix_sparse, identity)  # Solving Ax = I instead of inverting
 
-        P = np.linalg.inv(grahm_matrix)
+        # Normalize rows of P_sparse to get B_sparse
+        B_sparse = sps.csr_matrix(P_sparse)
+        diag_P = B_sparse.diagonal()  # Extract diagonal as array
+        B_sparse = B_sparse.multiply(-1 / diag_P[:, None])  # Row-wise division
+        B_sparse.setdiag(0.0)  # Set diagonal to zero
 
-        B = P / (-np.diag(P))
+        new_time_value, new_time_unit = seconds_to_biggest_unit(time.time() - start_time)
+        self._print("Fitting model... done in {:.2f} {}".format(new_time_value, new_time_unit))
 
-        B[diag_indices] = 0.0
-
-
-        new_time_value, new_time_unit = seconds_to_biggest_unit(time.time()-start_time)
-        self._print("Fitting model... done in {:.2f} {}".format( new_time_value, new_time_unit))
-
-        # Check if the matrix should be saved in a sparse or dense format
-        # The matrix is sparse, regardless of the presence of the topK, if nonzero cells are less than sparse_threshold_quota %
+        # Apply Top-K to B_sparse if topK is specified
         if topK is not None:
-            B = similarityMatrixTopK(B, k = topK, verbose = False)
+            B_sparse = similarityMatrixTopK(B_sparse, k=topK, verbose=False)
 
-
-        if self._is_content_sparse_check(B):
-            self._print("Detected model matrix to be sparse, changing format.")
-            self.W_sparse = check_matrix(B, format='csr', dtype=np.float32)
-
-        else:
-            self.W_sparse = check_matrix(B, format='npy', dtype=np.float32)
-            self._W_sparse_format_checked = True
-            self._compute_item_score = self._compute_score_W_dense
-        #
-        #
-        # if topK is None:
-        #     self.W_sparse = B
-        #     self._W_sparse_format_checked = True
-        #     self._compute_item_score = self._compute_score_W_dense
-        #
-        # else:
-        #     self.W_sparse = similarityMatrixTopK(B, k = topK, verbose = False)
-        #     self.W_sparse = sps.csr_matrix(self.W_sparse)
-
+        # Save the final sparse matrix
+        self.W_sparse = B_sparse
 
     def _is_content_sparse_check(self, matrix):
 
