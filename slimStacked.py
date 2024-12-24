@@ -46,7 +46,6 @@ def objective_function_SLIM(optuna_trial):
 
     # Hyperparametri da ottimizzare
 
-
     # Allenamento del recommender
     recommender_instance.fit(alpha =  0.00022742003969239836, topK =  709, l1_ratio =  0.1488442906776265)
 
