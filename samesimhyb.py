@@ -157,7 +157,7 @@ def objective_function_scores_hybrid_8( optuna_trial):
     alpha = optuna_trial.suggest_int("alpha", 0, 1)
 
     recom1.fit(alpha,slim,rp3)
-
+    print("fitto")
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
 
