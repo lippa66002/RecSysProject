@@ -89,9 +89,8 @@ def objective_function_scores_hybrid_5( optuna_trial):
     recom1 = ScoresHybridRecommender(controller.URM_train, rp3, slim, bpr, slim, slim)
 
     alpha = optuna_trial.suggest_int("alpha", 1, 20)
-    beta = optuna_trial.suggest_int("beta", 1, 20)
-    gamma = optuna_trial.suggest_int("gamma", 1, 20)
-    recom1.fit(alpha, beta, gamma, 0, 0)
+
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -117,10 +116,9 @@ def objective_function_scores_hybrid_6( optuna_trial):
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
     recom1 = ScoresHybridRecommender(controller.URM_train, rp3, slim, item, slim, slim)
 
-    alpha = optuna_trial.suggest_int("alpha", 1, 20)
-    beta = optuna_trial.suggest_int("beta", 1, 20)
-    gamma = optuna_trial.suggest_int("gamma", 1, 20)
-    recom1.fit(alpha, beta, gamma, 0, 0)
+    alpha = optuna_trial.suggest_int("alpha", 0, 1)
+
+    recom1.fit(alpha,1-alpha , 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -140,9 +138,8 @@ def objective_function_scores_hybrid_4( optuna_trial):
     recom1 = ScoresHybridRecommender(controller.URM_train, item, slim, bpr, slim, slim)
 
     alpha = optuna_trial.suggest_int("alpha", 1, 20)
-    beta = optuna_trial.suggest_int("beta", 1, 20)
-    gamma = optuna_trial.suggest_int("gamma", 1, 20)
-    recom1.fit(alpha, beta, gamma, 0, 0)
+
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -163,9 +160,8 @@ def objective_function_scores_hybrid_7( optuna_trial):
     recom1 = ScoresHybridRecommender(controller.URM_train, items, slim, bpr, slim, slim)
 
     alpha = optuna_trial.suggest_int("alpha", 1, 20)
-    beta = optuna_trial.suggest_int("beta", 1, 20)
-    gamma = optuna_trial.suggest_int("gamma", 1, 20)
-    recom1.fit(alpha, beta,gamma, 0, 0)
+
+    recom1.fit(alpha, 1-alpha,0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
