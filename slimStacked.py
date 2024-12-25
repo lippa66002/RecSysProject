@@ -48,7 +48,7 @@ def objective_function_SLIM(optuna_trial):
 
 
     # Allenamento del recommender
-    recommender_instance.fit(alpha=0.00016789623535227514, topK= 758, l1_ratio= 0.06153944206950855)
+    recommender_instance.fit(alpha= 0.00019095155538062687, topK= 751, l1_ratio= 0.05404310978866373)
 
     # Valutazione del recommender
     result_df, _ = evaluator_test.evaluateRecommender(recommender_instance)
