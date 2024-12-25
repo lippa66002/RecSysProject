@@ -85,7 +85,7 @@ def objective_function_scores_hybrid_5( optuna_trial):
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
     recom1 = ScoresHybridRecommender(controller.URM_train, rp3, slim, bpr, slim, slim)
 
-    alpha = optuna_trial.suggest_int("alpha", 1, 20)
+    alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
     recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
@@ -113,7 +113,7 @@ def objective_function_scores_hybrid_6( optuna_trial):
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
     recom1 = HybridOptunable2(controller.URM_train)
 
-    alpha = optuna_trial.suggest_int("alpha", 0, 1)
+    alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
     recom1.fit(alpha,slim,item)
 
@@ -134,7 +134,7 @@ def objective_function_scores_hybrid_7( optuna_trial):
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
     recom1 = HybridOptunable2(controller.URM_train)
 
-    alpha = optuna_trial.suggest_int("alpha", 0, 1)
+    alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
     recom1.fit(alpha,slim,bpr)
 
@@ -154,7 +154,7 @@ def objective_function_scores_hybrid_8( optuna_trial):
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
     recom1 = HybridOptunable2(controller.URM_train)
 
-    alpha = optuna_trial.suggest_int("alpha", 0, 1)
+    alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
     recom1.fit(alpha,slim,rp3)
     print("fitto")
