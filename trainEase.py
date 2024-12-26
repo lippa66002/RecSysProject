@@ -1,6 +1,7 @@
 
 import DataHandler
 from EASE_R_Recommender import EASE_R_Recommender
+from EASE__R_PyTorch import EASE_R_PyTorch
 from ModelNames import ModelName
 
 
@@ -22,7 +23,7 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
 
-easer = EASE_R_Recommender(controller.URM_train)
+easer = EASE_R_PyTorch(controller.URM_train)
 easer.fit(topK= 10)
 cc,_ = controller.evaluator_test.evaluateRecommender(easer)
 print(cc.loc[10]["MAP"])
