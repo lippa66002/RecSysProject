@@ -87,7 +87,7 @@ print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
 
-def objective_function_SLIM_BPR_Cython(self, optuna_trial):
+def objective_function_SLIM_BPR_Cython(optuna_trial):
 
     # Aggiunta di gamma ai parametri del trial
     gamma = optuna_trial.suggest_float("gamma", 0.5, 1.0)  # Gamma può variare tra 0 e 1
@@ -104,7 +104,7 @@ def objective_function_SLIM_BPR_Cython(self, optuna_trial):
         "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["sgd", "adagrad", "adam"])
     }
     recommender_instance.fit(**full_hyperp)
-    result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+    result_df, _ = evaluator_test.evaluateRecommender(recommender_instance)
     return result_df.loc[10]["MAP"]
 
 
@@ -119,7 +119,7 @@ print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
 
-def objective_function_rp3beta(self, optuna_trial):
+def objective_function_rp3beta(optuna_trial):
     # Aggiunta di gamma ai parametri del trial
     gamma = optuna_trial.suggest_float("gamma", 0.5, 1.0)  # Gamma può variare tra 0 e 1
 
@@ -135,7 +135,7 @@ def objective_function_rp3beta(self, optuna_trial):
         "beta" : optuna_trial.suggest_float("beta", 0.1,2)
     }
     recommender_instance.fit(**full_hyperp)
-    result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+    result_df, _ = evaluator_test.evaluateRecommender(recommender_instance)
     return result_df.loc[10]["MAP"]
 
 
