@@ -39,7 +39,7 @@ dd, _ = evaluator_test.evaluateRecommender(slim)
 print(dd.loc[10]["MAP"])
 def objective_function_SLIM(optuna_trial):
     # Aggiunta di gamma ai parametri del trial
-    gamma = optuna_trial.suggest_float("gamma", 0.75, 1.0)  # Gamma può variare tra 0 e 1
+    gamma = optuna_trial.suggest_float("gamma", 0.85, 1.0)  # Gamma può variare tra 0 e 1
 
     # Creazione di stacked con gamma
     stacked = sps.vstack([gamma * URM_trainval, (1 - gamma) * ICM_all.T]).tocsr()
@@ -48,9 +48,9 @@ def objective_function_SLIM(optuna_trial):
     # Creazione dell'istanza del recommender
     recommender_instance = SLIMElasticNetRecommender(stacked)
     full_hyperp = {
-        "alpha": optuna_trial.suggest_float("alpha", 0.0001, 0.0003, log=True),  # 1e-5, 1e-3 fino a 0.0003
+        "alpha": optuna_trial.suggest_float("alpha", 0.00009, 0.0002, log=True),  # 1e-5, 1e-3 fino a 0.0003
         "topK": optuna_trial.suggest_int("topK", 600, 1000),  # 5, 1000
-        "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.0001, 0.4),  # 1e-3, 0.6 fino a 0.4
+        "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.01, 0.4),  # 1e-3, 0.6 fino a 0.4
     }
 
     # Allenamento del recommender
