@@ -31,10 +31,7 @@ URM_validation = sps.load_npz("URM_validation.npz")
 ICM_all = sps.load_npz("ICM_all.npz")
 evaluator_validation = EvaluatorHoldout(URM_validation, cutoff_list=[10])
 evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[10])
-mult = MultVAERecommender(URM_trainval)
-mult.fit()
-dd, _ = evaluator_test.evaluateRecommender(mult)
-print(dd.loc[10]["MAP"])
+
 
 
 def objective_function_multVAE(optuna_trial):
