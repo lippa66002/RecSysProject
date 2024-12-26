@@ -35,15 +35,12 @@ ICM_all = sps.load_npz("ICM_all.npz")
 
 evaluator_validation = EvaluatorHoldout(URM_validation, cutoff_list=[10])
 evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[10])
+gamma = 0.6814451172353111
+stacked = sps.vstack([gamma * URM_trainval, (1 - gamma) * ICM_all.T]).tocsr()
 
 
-item = ItemKNNCFRecommender(URM_trainval)
-item.fit(similarity =  "cosine", topK =  8, shrink= 12)
-dd, _ = evaluator_test.evaluateRecommender(item)
-print(dd.loc[10]["MAP"])
-
-
-slim = SLIMElasticNetRecommender(URM_trainval)
-slim.load_model(folder_path="_saved_models", file_name="SLIMtrainval.zip")
+slim = SLIMElasticNetRecommender(stacked)
+slim.fit( alpha= 0.0001045781863041146, topK= 737, l1_ratio = 0.04789294526340647)
+slim.save_model(folder_path="_saved_models",file_name = "SLIMstackedTrainval1")
 dd, _ = evaluator_test.evaluateRecommender(slim)
 print(dd.loc[10]["MAP"])
