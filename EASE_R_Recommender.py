@@ -38,62 +38,62 @@ class EASE_R_Recommender(BaseItemSimilarityMatrixRecommender):
         super(EASE_R_Recommender, self).__init__(URM_train)
         self.sparse_threshold_quota = sparse_threshold_quota
 
-    def fit(self, df, lambda_: float = 0.5, implicit=True, topK=None, normalize_matrix=False, verbose=True):
+    def fit(self, topK=None, l2_norm=1e3, normalize_matrix=False, verbose=True):
         """
-        df: pandas.DataFrame with columns user_id, item_id and (rating)
-        lambda_: L2 regularization term
-        implicit: if True, ratings are ignored and taken as 1, else normalized ratings are used
-        topK: number of top-K items to use for similarity computation
-        normalize_matrix: whether to normalize the matrix or not
-        verbose: whether to print progress
+        topK: numero massimo di vicini (top-K) per la matrice di similarità
+        l2_norm: termine di regolarizzazione L2
+        normalize_matrix: se True, normalizza la matrice prima di calcolare le similarità
+        verbose: se True, stampa i dettagli durante l'esecuzione
         """
         self.verbose = verbose
 
         start_time = time.time()
         self._print("Fitting model... ")
 
-        # Step 1: Normalize the URM if required
+        # Normalizzazione opzionale della matrice URM_train
         if normalize_matrix:
-            # Normalize rows and then columns (L2 normalization)
+            # Normalizza righe e colonne separatamente
             self.URM_train = normalize(self.URM_train, norm='l2', axis=1)
             self.URM_train = normalize(self.URM_train, norm='l2', axis=0)
+            self.URM_train = sps.csr_matrix(self.URM_train)
 
-        # Step 2: Compute similarity matrix using the user-item matrix
+        # Creazione della matrice di similarità (coseno tra gli item)
         similarity = Compute_Similarity(self.URM_train, shrink=0, topK=topK, normalize=False, similarity="cosine")
-        print(type(similarity))  # To check if it's a Compute_Similarity object
+        print(type(similarity))
 
         mat = similarity.compute_similarity()
 
-        # Step 3: Apply Top-K filtering to the similarity matrix (keep only top-K neighbors)
+        # Applica il filtro top-K per ridurre le dimensioni
         mat = similarityMatrixTopK(mat, k=topK, verbose=False)
-        print(f"Matrice sparsa (top-K): {mat.shape}")
+        print(f"Matrice dopo top-K: {mat.shape}")
 
-        # Step 4: Operazioni sparse - No conversion to dense matrix
-        # Compute the Graham matrix (dot product of the similarity matrix)
-        grahm_matrix = mat.T.dot(mat)  # mat^T * mat to get the Graham matrix (item-item similarity)
+        # Converte la matrice di similarità in un formato denso per facilitare le operazioni
+        grahm_matrix = mat.toarray()
 
-        # Step 5: Modify diagonal of Graham matrix with item popularity + lambda_
+        # Indici della diagonale
         diag_indices = np.diag_indices(grahm_matrix.shape[0])
+
+        # Popolarità degli item (frequenza delle interazioni per ogni item)
         item_popularity = np.ediff1d(self.URM_train.tocsc().indptr)
-        grahm_matrix[diag_indices] = item_popularity + lambda_
 
-        # Step 6: Calculate the inverse of the Graham matrix
-        P = sps.linalg.inv(grahm_matrix)  # Use sparse matrix inverse for memory efficiency
+        # Aggiungi la popolarità degli item alla diagonale della matrice
+        grahm_matrix[diag_indices] = item_popularity + l2_norm
 
-        # Step 7: Calculate B matrix
-        B = P / (-np.diag(P).reshape(-1, 1))  # Divide each row by its diagonal value
-        B[diag_indices] = 0  # Set diagonal to zero to avoid self-interaction effects
+        # Calcola la matrice P come inversa della matrice di similarità
+        P = np.linalg.inv(grahm_matrix)
 
-        # Step 8: Save matrix B as an attribute
+        # Calcola la matrice B come P diviso per i valori negativi della diagonale
+        B = P / (-np.diag(P))
+
+        # Pulisce la diagonale
+        B[diag_indices] = 0.0
+
         self.B = B
+        self.pred = self.URM_train.dot(B)
 
-        # Step 9: Compute the predictions matrix
-        # Multiply the similarity matrix by B to get the predictions
-        self.pred = mat.dot(B)
-
-        # Print fitting time
+        # Misura del tempo di esecuzione
         new_time_value, new_time_unit = seconds_to_biggest_unit(time.time() - start_time)
-        self._print("Fitting model... done in {:.2f} {}".format(new_time_value, new_time_unit))
+        self._print(f"Fitting model... done in {new_time_value:.2f} {new_time_unit}")
 
         # Check if the matrix should be saved in a sparse or dense format
         # The matrix is sparse, regardless of the presence of the topK, if nonzero cells are less than sparse_threshold_quota %
