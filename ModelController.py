@@ -215,7 +215,7 @@ class ModelController:
 
         optuna_study.optimize(obj_func,
                               callbacks=[save_results],
-                              n_trials=50)
+                              n_trials=400)
 
         print(save_results.results_df)
         print(optuna_study.best_trial.params)
