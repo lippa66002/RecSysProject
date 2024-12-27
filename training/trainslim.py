@@ -1,4 +1,4 @@
-from ModelController import ModelController
+import ModelController
 from ModelNames import ModelName
 
 controller = ModelController()
