@@ -1,7 +1,8 @@
 import os
+import sys
 
-# Torna alla directory principale del progetto
-os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
+# Aggiungi la directory principale al percorso dei moduli
+sys.path.append(os.path.abspath(".."))
 
 from ModelController import ModelController
 from ModelNames import ModelName
