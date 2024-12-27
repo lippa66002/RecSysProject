@@ -2,6 +2,7 @@ import zipfile
 
 from Data_manager.split_functions.split_train_validation_random_holdout import \
     split_train_in_two_percentage_global_sample
+from EASE__R_PyTorch import EASE_R_PyTorch
 from Evaluation.Evaluator import EvaluatorHoldout
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.FactorizationMachines.LightFMRecommender import LightFMItemHybridRecommender
@@ -307,7 +308,7 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_easeR(self, optuna_trial):
-        recommender_instance = EASE_R_Recommender(self.URM_train)
+        recommender_instance = EASE_R_PyTorch(self.URM_train)
         full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
             "l2_norm": optuna_trial.suggest_float("l2_norm", 1e-3, 1e3, log=True),
