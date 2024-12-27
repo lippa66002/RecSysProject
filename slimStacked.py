@@ -8,12 +8,12 @@ import optuna
 controller = ModelController()
 
 slim1 = SLIMElasticNetRecommender(controller.URM_train)
-slim1.load_model(folder_path="../_saved_models", file_name="SLIMtrainval")
+slim1.load_model(folder_path="_saved_models", file_name="SLIMtrainval")
 dd, _ = controller.evaluator_test.evaluateRecommender(slim1)
 print(dd.loc[10]["MAP"])
 def objective_function_SLIM(optuna_trial):
     # Aggiunta di gamma ai parametri del trial
-    gamma = optuna_trial.suggest_float("gamma", 0.85, 1.0)  # Gamma può variare tra 0 e 1
+    gamma = optuna_trial.suggest_float("gamma", 0.45, 0.75)  # Gamma può variare tra 0 e 1
 
     # Creazione di stacked con gamma
     stacked = sps.vstack([gamma * controller.URM_train, (1 - gamma) * controller.ICM_all.T]).tocsr()
