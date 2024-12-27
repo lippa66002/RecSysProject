@@ -1,3 +1,4 @@
+
 import torch
 import numpy as np
 import time
@@ -64,6 +65,9 @@ class EASE_R_PyTorch(BaseItemSimilarityMatrixRecommender):
         # Step 9: Calcoliamo la matrice delle previsioni
         self.pred = mat_torch @ B  # Moltiplichiamo la matrice sparsa per la matrice B (ancora sparsa)
 
+        # Assign W_sparse
+        self.W_sparse = B
+
         # Print fitting time
         new_time_value, new_time_unit = self.seconds_to_biggest_unit(time.time() - start_time)
         self._print("Fitting model... done in {:.2f} {}".format(new_time_value, new_time_unit))
@@ -117,3 +121,5 @@ class EASE_R_PyTorch(BaseItemSimilarityMatrixRecommender):
             return seconds // 3600, "hours"
         else:
             return seconds // 86400, "days"
+
+
