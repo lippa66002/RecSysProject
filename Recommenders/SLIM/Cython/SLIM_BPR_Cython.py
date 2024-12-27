@@ -61,7 +61,7 @@ class SLIM_BPR_Cython(BaseItemSimilarityMatrixRecommender, Incremental_Training_
 
 
 
-    def fit(self, epochs=300,
+    def fit(self, epochs=320,
             positive_threshold_BPR = None,
             train_with_sparse_weights = None,
             allow_train_with_sparse_weights = True,
