@@ -17,7 +17,7 @@ class EASE_R_PyTorch(BaseItemSimilarityMatrixRecommender):
         super(EASE_R_PyTorch, self).__init__(URM_train)
         self.sparse_threshold_quota = sparse_threshold_quota
 
-    def fit(self, topK=None, normalize_matrix=False, verbose=True):
+    def fit(self, topK=None, normalize_matrix=False, verbose=True, l2 = 0):
         """
         topK: number of top-K items to use for similarity computation
         normalize_matrix: whether to normalize the matrix or not
@@ -51,7 +51,7 @@ class EASE_R_PyTorch(BaseItemSimilarityMatrixRecommender):
         # Step 6: Aggiungiamo la popolarità alla diagonale della matrice Graham
         grahm_matrix = grahm_matrix.to_dense()  # Convert sparse matrix to dense for easier manipulation
         diag_indices = torch.arange(grahm_matrix.shape[0])
-        grahm_matrix[diag_indices, diag_indices] += torch.tensor(item_popularity)
+        grahm_matrix[diag_indices, diag_indices] += torch.tensor(item_popularity) + l2
 
         # Step 7: Calcoliamo l'inversa della matrice Graham
         P = torch.inverse(grahm_matrix)  # Matrice inversa

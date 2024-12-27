@@ -9,7 +9,5 @@ from ModelNames import ModelName
 
 controller = ModelController()
 
-easer = EASE_R_PyTorch(controller.URM_train)
+
 optuna = controller.optunizer(ModelName.EASE_R_Recommender)
-cc, _ = controller.evaluator_test.evaluateRecommender(easer)
-print(cc.loc[10]["MAP"])
