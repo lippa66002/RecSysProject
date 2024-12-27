@@ -17,7 +17,7 @@ from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 
-with zipfile.ZipFile("matrici_sparse.zip", "r") as zipf:
+with zipfile.ZipFile("../matrici_sparse.zip", "r") as zipf:
     zipf.extract("URM_trainval.npz")
     zipf.extract("URM_test.npz")
     zipf.extract("URM_train.npz")
@@ -26,11 +26,11 @@ with zipfile.ZipFile("matrici_sparse.zip", "r") as zipf:
     zipf.close()
 
 # Carica la matrice sparse
-URM_trainval = sps.load_npz("URM_trainval.npz")
-URM_train = sps.load_npz("URM_train.npz")
-URM_test = sps.load_npz("URM_test.npz")
-URM_validation = sps.load_npz("URM_validation.npz")
-ICM_all = sps.load_npz("ICM_all.npz")
+URM_trainval = sps.load_npz("../URM_trainval.npz")
+URM_train = sps.load_npz("../URM_train.npz")
+URM_test = sps.load_npz("../URM_test.npz")
+URM_validation = sps.load_npz("../URM_validation.npz")
+ICM_all = sps.load_npz("../ICM_all.npz")
 
 evaluator_validation = EvaluatorHoldout(URM_validation, cutoff_list=[10])
 evaluator_test = EvaluatorHoldout(URM_test, cutoff_list=[10])

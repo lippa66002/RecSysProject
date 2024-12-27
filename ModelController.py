@@ -1,3 +1,5 @@
+import zipfile
+
 from Data_manager.split_functions.split_train_validation_random_holdout import \
     split_train_in_two_percentage_global_sample
 from Evaluation.Evaluator import EvaluatorHoldout
@@ -32,11 +34,22 @@ from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 class ModelController:
 
-    def __init__(self, URM_all, ICM_all):
-        self.URM_all = URM_all
-        self.ICM_all = ICM_all
-        self.URM_train, self.URM_test = split_train_in_two_percentage_global_sample(URM_all, train_percentage=0.8)
-        self.URM_train_boost, self.URM_validation = split_train_in_two_percentage_global_sample(self.URM_train, train_percentage=0.8)
+    def __init__(self):
+
+        with zipfile.ZipFile("matrici_sparse.zip", "r") as zipf:
+            zipf.extract("URM_trainval.npz")
+            zipf.extract("URM_test.npz")
+            zipf.extract("URM_train.npz")
+            zipf.extract("URM_validation.npz")
+            zipf.extract("ICM_all.npz")
+            zipf.close()
+
+        # Carica la matrice sparse
+        self.URM_train = sps.load_npz("URM_trainval.npz")
+        self.URM_boost = sps.load_npz("URM_train.npz")
+        self.URM_test = sps.load_npz("URM_test.npz")
+        self.URM_validation = sps.load_npz("URM_validation.npz")
+        self.ICM_all = sps.load_npz("ICM_all.npz")
         self.evaluator_validation = EvaluatorHoldout(self.URM_validation, cutoff_list=[10])
         self.evaluator_test = EvaluatorHoldout(self.URM_test, cutoff_list=[10])
 
@@ -240,19 +253,27 @@ class ModelController:
 
     def objective_function_SLIM(self, optuna_trial):
 
-        stacked = sps.vstack([self.URM_train, self.ICM_all.T]).tocsr()
-        print(f"Type of self.URM_train: {type(self.URM_train)}")
-        print(f"Type of self.ICM_all.T: {type(self.ICM_all.T)}")
 
-        recommender_instance = SLIMElasticNetRecommender(stacked)
-        full_hyperp = {"alpha": optuna_trial.suggest_float("alpha", 0.0001, 0.0003, log=True), #1e-5, 1e-3 #fino a 0.0003
-                       "topK": optuna_trial.suggest_int("topK", 600, 1000), #5, 1000
-                       "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.0001, 0.4), #1e-3, 0.6 #fino a 0.4
-                       }
+
+        # Creazione dell'istanza del recommender
+        recommender_instance = SLIMElasticNetRecommender(self.URM_train)
+
+        # Hyperparametri da ottimizzare
+        full_hyperp = {
+            "alpha": optuna_trial.suggest_float("alpha", 0.00007, 0.0003, log=True),  # 1e-5, 1e-3 fino a 0.0003
+            "topK": optuna_trial.suggest_int("topK", 600, 1000),  # 5, 1000
+            "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.01, 0.4),  # 1e-3, 0.6 fino a 0.4
+        }
+
+        # Allenamento del recommender
         recommender_instance.fit(**full_hyperp)
+
+        # Valutazione del recommender
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
 
+        # Restituzione del MAP
         return result_df.loc[10]["MAP"]
+
     def objective_function_IALS(self,optuna_trial):
         recommender_instance = IALSRecommender(self.URM_train)
         confidence_scaling = optuna_trial.suggest_categorical("confidence_scaling",

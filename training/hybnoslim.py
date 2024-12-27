@@ -1,5 +1,4 @@
 import optuna
-from scipy.constants import alpha
 
 import DataHandler
 from ModelController import ModelController
@@ -19,16 +18,16 @@ print("Start")
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 
 
-URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",
+URM_all_dataframe = pd.read_csv(filepath_or_buffer="../Data/data_train.csv",
                                 sep=",",
                                 dtype={0:int, 1:int, 2:float},
                                 engine='python')
-users = pd.read_csv(filepath_or_buffer="Data/data_target_users_test.csv")
+users = pd.read_csv(filepath_or_buffer="../Data/data_target_users_test.csv")
 
-ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
-                                sep=",",
-                                dtype={0:int, 1:int, 2:float},
-                                engine='python')
+ICM = pd.read_csv(filepath_or_buffer="../Data/data_ICM_metadata.csv",
+                  sep=",",
+                  dtype={0:int, 1:int, 2:float},
+                  engine='python')
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
 controller = ModelController(URM_all, ICM_all)
@@ -48,48 +47,50 @@ items = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
 items.fit()
 hyb = ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train, controller.ICM_all)
 hyb.fit(topK =  6, shrink =  167, similarity =  'asymmetric', normalize =  False, feature_weighting =  'BM25', ICM_weight =  0.375006792830105)
-
-
-itembpr = ScoresHybridRecommender(controller.URM_train, item, bpr, slim, slim, slim)
-itembpr.fit(0.78083761190111, 1-alpha, 0, 0, 0)
-rp3bpr = ScoresHybridRecommender(controller.URM_train, rp3, bpr, slim, slim, slim)
-rp3bpr.fit(0.9103458465533064,1-alpha, 0, 0, 0)
-rp3item = ScoresHybridRecommender(controller.URM_train, rp3, item, slim, slim, slim)
-rp3item.fit(0.7592306161113771,1-alpha, 0, 0, 0)
-bprhyb = ScoresHybridRecommender(controller.URM_train, bpr, hyb, slim, slim, slim)
-bprhyb.fit(0.8240882120610954, 1-alpha, 0, 0, 0)
-itemsbpr = ScoresHybridRecommender(controller.URM_train, items, bpr, slim, slim, slim)
-itemsbpr.fit(0.2127643996908023, 1-alpha, 0, 0, 0)
-rp3items = ScoresHybridRecommender(controller.URM_train, rp3, items, slim, slim, slim)
-rp3items.fit(0.9359918689312217, 1-alpha, 0, 0, 0)
-
 cc,_ = controller.evaluator_test.evaluateRecommender(slim)
 print(cc.loc[10]["MAP"])
-cc,_ = controller.evaluator_test.evaluateRecommender(itemsbpr)
+cc,_ = controller.evaluator_test.evaluateRecommender(bpr)
 print(cc.loc[10]["MAP"])
-cc,_ = controller.evaluator_test.evaluateRecommender(rp3bpr)
+cc,_ = controller.evaluator_test.evaluateRecommender(item)
 print(cc.loc[10]["MAP"])
-cc,_ = controller.evaluator_test.evaluateRecommender(rp3item)
+cc,_ = controller.evaluator_test.evaluateRecommender(rp3)
 print(cc.loc[10]["MAP"])
-cc,_ = controller.evaluator_test.evaluateRecommender(bprhyb)
+cc,_ = controller.evaluator_test.evaluateRecommender(user)
 print(cc.loc[10]["MAP"])
-cc,_ = controller.evaluator_test.evaluateRecommender(itemsbpr)
+cc,_ = controller.evaluator_test.evaluateRecommender(items)
 print(cc.loc[10]["MAP"])
-cc,_ = controller.evaluator_test.evaluateRecommender(rp3items)
+cc,_ = controller.evaluator_test.evaluateRecommender(hyb)
 print(cc.loc[10]["MAP"])
 
 
 
 
+def objective_function_scores_hybrid_1( optuna_trial):
 
-
-def objective_function_scores_hybrid_5( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, rp3, slim, bpr, slim, slim)
+    recom1 = ScoresHybridRecommender(controller.URM_train, item, bpr, slim, slim, slim)
 
-    alpha = optuna_trial.suggest_float("alpha", 0, 1)
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
+    result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
+    return result_df.loc[10]["MAP"]
+optuna_study = optuna.create_study(direction="maximize")
+save_results = SaveResults()
+optuna_study.optimize(objective_function_scores_hybrid_1,
+                              callbacks=[save_results],
+                              n_trials=50)
+print(save_results.results_df)
+print(optuna_study.best_trial.params)
+
+
+def objective_function_scores_hybrid_2( optuna_trial):
+    # bpr = SLIM_BPR_Cython(self.URM_train)
+    # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
+    recom1 = ScoresHybridRecommender(controller.URM_train, rp3, bpr, slim, slim, slim)
+
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
     recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
@@ -98,27 +99,20 @@ def objective_function_scores_hybrid_5( optuna_trial):
 
 optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
-optuna_study.optimize(objective_function_scores_hybrid_5,
+optuna_study.optimize(objective_function_scores_hybrid_2,
                       callbacks=[save_results],
                       n_trials=50)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
 
-
-
-
-
-
-
-def objective_function_scores_hybrid_6( optuna_trial):
+def objective_function_scores_hybrid_3( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, rp3, slim, item, slim, slim)
+    recom1 = ScoresHybridRecommender(controller.URM_train, rp3, item, slim, slim, slim)
 
-    alpha = optuna_trial.suggest_float("alpha", 0, 1)
-
-    recom1.fit(alpha,1-alpha , 0, 0, 0)
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -126,19 +120,19 @@ def objective_function_scores_hybrid_6( optuna_trial):
 
 optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
-optuna_study.optimize(objective_function_scores_hybrid_6,
+optuna_study.optimize(objective_function_scores_hybrid_3,
                       callbacks=[save_results],
                       n_trials=50)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
+
 def objective_function_scores_hybrid_4( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, item, slim, bpr, slim, slim)
+    recom1 = ScoresHybridRecommender(controller.URM_train, bpr, hyb, slim, slim, slim)
 
-    alpha = optuna_trial.suggest_float("alpha", 0, 1)
-
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
     recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
@@ -154,14 +148,13 @@ print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
 
-def objective_function_scores_hybrid_7( optuna_trial):
+def objective_function_scores_hybrid_5( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, items, slim, bpr, slim, slim)
+    recom1 = ScoresHybridRecommender(controller.URM_train, items, bpr, slim, slim, slim)
 
-    alpha = optuna_trial.suggest_float("alpha", 0, 1)
-
-    recom1.fit(alpha, 1-alpha,0, 0, 0)
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -169,12 +162,54 @@ def objective_function_scores_hybrid_7( optuna_trial):
 
 optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
-optuna_study.optimize(objective_function_scores_hybrid_7,
+optuna_study.optimize(objective_function_scores_hybrid_5,
                       callbacks=[save_results],
                       n_trials=50)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
+
+def objective_function_scores_hybrid_6( optuna_trial):
+    # bpr = SLIM_BPR_Cython(self.URM_train)
+    # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
+    recom1 = ScoresHybridRecommender(controller.URM_train, rp3, item, slim, slim, slim)
+
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
+
+    result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
+    return result_df.loc[10]["MAP"]
+
+
+optuna_study = optuna.create_study(direction="maximize")
+save_results = SaveResults()
+optuna_study.optimize(objective_function_scores_hybrid_6,
+                      callbacks=[save_results],
+                      n_trials=50)
+print(save_results.results_df)
+print(optuna_study.best_trial.params)
+
+
+
+def objective_function_scores_hybrid_6( optuna_trial):
+    # bpr = SLIM_BPR_Cython(self.URM_train)
+    # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
+    recom1 = ScoresHybridRecommender(controller.URM_train, rp3, items, slim, slim, slim)
+
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
+
+    result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
+    return result_df.loc[10]["MAP"]
+
+
+optuna_study = optuna.create_study(direction="maximize")
+save_results = SaveResults()
+optuna_study.optimize(objective_function_scores_hybrid_6,
+                      callbacks=[save_results],
+                      n_trials=50)
+print(save_results.results_df)
+print(optuna_study.best_trial.params)
 
 
 
