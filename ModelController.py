@@ -28,15 +28,18 @@ import optuna
 from ModelNames import ModelName
 import scipy.sparse as sps
 import pandas as pd
-
+import os
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 
 class ModelController:
 
     def __init__(self):
-
-        with zipfile.ZipFile("matrici_sparse.zip", "r") as zipf:
+        # Get the directory of the current script
+        current_dir = os.path.dirname(__file__)
+        # Construct the path to the zip file
+        zip_file_path = os.path.join(current_dir, 'matrici_sparse.zip')
+        with zipfile.ZipFile(zip_file_path, "r") as zipf:
             zipf.extract("URM_trainval.npz")
             zipf.extract("URM_test.npz")
             zipf.extract("URM_train.npz")
