@@ -32,6 +32,7 @@ import scipy.sparse as sps
 import pandas as pd
 import os
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
+from easeR_Filo import EASE_R_Filo
 
 
 class ModelController:
@@ -158,6 +159,9 @@ class ModelController:
         elif model_name == ModelName.Hybrid_UserKNN_CF_CBF:
             model = UserKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.EASE_R_Filo:
+            model = EASE_R_Filo(self.URM_train)
+            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -212,6 +216,8 @@ class ModelController:
             obj_func = self.objective_function_LightFMItemHybridRecommender
         elif model_name == ModelName.Hybrid_UserKNN_CF_CBF:
             obj_func = self.objective_function_hybrid_UserKNN_CF_CBF
+        elif model_name == ModelName.EASE_R_Filo:
+            obj_func = self.objective_function_easeR_filo
         else:
             raise ValueError("Model not found")
 
@@ -646,4 +652,15 @@ class ModelController:
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
 
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_easeR_filo(self, optuna_trial):
+        recommender_instance = EASE_R_Filo(self.URM_train)
+        full_hyperp = {
+            "topK" : optuna_trial.suggest_int("topK", 10, 500),
+            "l2_norm" : optuna_trial.suggest_float("l2_norm", 1e2, 1e5, log=True),
+            "normalize_matrix" : optuna_trial.suggest_categorical("normalize_matrix", [False, True])
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]

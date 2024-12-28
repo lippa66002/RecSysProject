@@ -30,3 +30,5 @@ class ModelName(Enum):
     ItemKNNCBFRecommender = "ItemKNNCBFRecommender"
     CFW_DVV_Similarity_Cython = "CFW_DVV_Similarity_Cython"
 
+    EASE_R_Filo = "EASE_R_Filo"
+
