@@ -8,6 +8,7 @@ from Recommenders.HybridDifferentLossFunctions import DifferentLossScoresHybridR
 from Recommenders.KNN.ItemKNNCustomSimilarityRecommender import ItemKNNCustomSimilarityRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
+from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 
@@ -30,8 +31,8 @@ controller = ModelController()
 model1 = SLIMElasticNetRecommender(controller.URM_train)
 model1.fit(alpha= 0.00022742003969239836, topK= 709, l1_ratio= 0.1488442906776265)
 
-model2 = SLIM_BPR_Cython(controller.URM_train)
-model2.fit(topK= 11, learning_rate= 0.04193849345153912, lambda_i= 0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric= True, sgd_mode= 'adagrad')
+model2 = UserKNNCFRecommender(controller.URM_train)
+model2.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
 
 best_map = 0.0
 

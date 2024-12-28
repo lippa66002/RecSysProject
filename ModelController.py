@@ -17,6 +17,7 @@ from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
 from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarityHybridRecommender
 from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
+from Recommenders.KNN.UserKNN_CFCBF_Hybrid_Recommender import UserKNN_CFCBF_Hybrid_Recommender
 from Recommenders.MatrixFactorization.Cython.MatrixFactorization_Cython import _MatrixFactorization_Cython
 from Recommenders.MatrixFactorization.IALSRecommender import IALSRecommender
 from Recommenders.MatrixFactorization.PureSVDRecommender import PureSVDRecommender
@@ -154,6 +155,9 @@ class ModelController:
         elif model_name  == ModelName.LightFMItemHybridRecommender:
             model = LightFMItemHybridRecommender(self.URM_train, self.ICM_all)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.Hybrid_UserKNN_CF_CBF:
+            model = UserKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+            model.fit(**optuna_hpp)
         else:
             raise ValueError("Model not found")
 
@@ -206,6 +210,8 @@ class ModelController:
             obj_func = self.objective_function_CFW_DVV_Similarity_Cython
         elif model_name == ModelName.LightFMItemHybridRecommender:
             obj_func = self.objective_function_LightFMItemHybridRecommender
+        elif model_name == ModelName.Hybrid_UserKNN_CF_CBF:
+            obj_func = self.objective_function_hybrid_UserKNN_CF_CBF
         else:
             raise ValueError("Model not found")
 
@@ -346,11 +352,12 @@ class ModelController:
         full_hyperp = {
             #"epochs": optuna_trial.suggest_int("epochs", 10, 100),
             "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True),
-            "batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
+            "batch_size": optuna_trial.suggest_int("batch_size", 16, 128),
             "dropout": optuna_trial.suggest_float("dropout", 0.1, 0.5),
             "total_anneal_steps": optuna_trial.suggest_int("total_anneal_steps", 10000, 200000),
             "anneal_cap": optuna_trial.suggest_float("anneal_cap", 0.1, 0.5),
-            "p_dims": [self.URM_train.shape[1], self.URM_train.shape[1]]
+            "p_dims": [self.URM_train.shape[1], self.URM_train.shape[1]] #"p_dims": [self.URM_train.shape[1] // 2, self.URM_train.shape[1] // 4],
+
         }
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
@@ -614,6 +621,26 @@ class ModelController:
             "item_alpha": optuna_trial.suggest_float("item_alpha", 1e-6, 1e-1, log=True),
             "user_alpha": optuna_trial.suggest_float("user_alpha", 1e-6, 1e-1, log=True),
             "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True)
+        }
+
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_hybrid_UserKNN_CF_CBF(self, optuna_trial):
+
+        recommender_instance = UserKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
+
+        full_hyperp = {
+            "topK": optuna_trial.suggest_int("topK", 5, 1000),
+            "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
+            "similarity": optuna_trial.suggest_categorical("similarity",
+                                                           ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky',
+                                                            'euclidean']),
+            "normalize": optuna_trial.suggest_categorical("normalize", [True, False]),
+            "feature_weighting": optuna_trial.suggest_categorical("feature_weighting", ["BM25", "TF-IDF", "none"]),
+            "UCM_weight": optuna_trial.suggest_float("UCM_weight", 0.1, 1.0)
         }
 
         recommender_instance.fit(**full_hyperp)
