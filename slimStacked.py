@@ -11,7 +11,7 @@ controller = ModelController()
 
 def objective_function_SLIM(optuna_trial):
     # Aggiunta di gamma ai parametri del trial
-    gamma = optuna_trial.suggest_float("gamma", 0.15, 0.45)  # Gamma può variare tra 0 e 1
+    gamma = optuna_trial.suggest_float("gamma", 0.94, 0.99)  # Gamma può variare tra 0 e 1
 
     # Creazione di stacked con gamma
     stacked = sps.vstack([gamma * controller.URM_train, (1 - gamma) * controller.ICM_all.T]).tocsr()
@@ -20,7 +20,7 @@ def objective_function_SLIM(optuna_trial):
     # Creazione dell'istanza del recommender
     recommender_instance = SLIMElasticNetRecommender(stacked)
     full_hyperp = {
-        "alpha": optuna_trial.suggest_float("alpha", 0.00006, 0.00016, log=True),  # 1e-5, 1e-3 fino a 0.0003
+        "alpha": optuna_trial.suggest_float("alpha", 0.00004, 0.00013, log=True),  # 1e-5, 1e-3 fino a 0.0003
         "topK": optuna_trial.suggest_int("topK", 600, 1000),  # 5, 1000
         "l1_ratio": optuna_trial.suggest_float("l1_ratio", 0.01, 0.09),  # 1e-3, 0.6 fino a 0.4
     }
