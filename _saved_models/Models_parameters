@@ -8,8 +8,14 @@ recommender_params = {
     "SLIM_BPR_Cython": (0.06658149884658611){'topK': 11, 'learning_rate': 0.04193849345153912, 'lambda_i': 0.009876208709609856, 'lambda_j': 0.00044296738036044263, 'symmetric': True, 'sgd_mode': 'adagrad'}
     "slim_bpr+itemknn": (0.0713751505230532) {'topK': 698, 'alpha': 0.3166541440484777}
     "slim_bpr+slim_en": (0.10068617418107022) {'topK': 340, 'alpha': 4.464670628236134e-05}
+    "slim_bpr+slim_en on different losses": (0.06080550034021425) {norm=1, alpha= 0.9}
     "SLIM_EN+item_cf_cbf": (0.10119343732433732) {'norm': 1, 'alpha': 0.0003942957276686053}
     "SLIM_EN + ItemKNNCF on different loss": norm= 1, alpha= 0.0029154147461754767
     "SLIM_EN + rp3beta": norm= 2, alpha= 0.0007840181667886983
+    "slim_en + userknn on different loss": (0.061665309150128064) {norm= 2, alpha= 0.7}
+    ItemKNNCBF: (0.018608920775887227) {'topK': 6, 'shrink': 693, 'similarity': 'cosine', 'normalize': True, 'feature_weighting': 'BM25'}
+    itemKNNCF+rp3beta: (0.056537153788662496) {alpha: 0.73}
+
+}
 
 }
