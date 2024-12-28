@@ -9,7 +9,6 @@ from Recommenders.BaseSimilarityMatrixRecommender import BaseItemSimilarityMatri
 from Recommenders.Recommender_utils import similarityMatrixTopK, check_matrix
 from Utils.seconds_to_biggest_unit import seconds_to_biggest_unit
 
-
 class EASE_R_Filo(BaseItemSimilarityMatrixRecommender):
     RECOMMENDER_NAME = "EASE_R_Filo"
 
@@ -20,6 +19,9 @@ class EASE_R_Filo(BaseItemSimilarityMatrixRecommender):
         self.URM_train = check_matrix(URM_train, format='csr')
 
     def fit(self, topK=None, l2_norm=1e3, normalize_matrix=False):
+
+        torch.cuda.empty_cache()
+
         start_time = time.time()
         self._print("Fitting model... ")
 
