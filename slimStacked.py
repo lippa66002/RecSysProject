@@ -11,7 +11,7 @@ controller = ModelController()
 
 def objective_function_SLIM(optuna_trial):
     # Aggiunta di gamma ai parametri del trial
-    gamma = optuna_trial.suggest_float("gamma", 0.15, 0.45)  # Gamma può variare tra 0 e 1
+    gamma = optuna_trial.suggest_float("gamma", 0.94, 0.99)  # Gamma può variare tra 0 e 1
 
     # Creazione di stacked con gamma
     stacked = sps.vstack([gamma * controller.URM_train, (1 - gamma) * controller.ICM_all.T]).tocsr()
