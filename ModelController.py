@@ -352,11 +352,12 @@ class ModelController:
         full_hyperp = {
             #"epochs": optuna_trial.suggest_int("epochs", 10, 100),
             "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True),
-            "batch_size": optuna_trial.suggest_int("batch_size", 32, 512),
+            "batch_size": optuna_trial.suggest_int("batch_size", 16, 128),
             "dropout": optuna_trial.suggest_float("dropout", 0.1, 0.5),
             "total_anneal_steps": optuna_trial.suggest_int("total_anneal_steps", 10000, 200000),
             "anneal_cap": optuna_trial.suggest_float("anneal_cap", 0.1, 0.5),
-            "p_dims": [self.URM_train.shape[1], self.URM_train.shape[1]]
+            "p_dims": [self.URM_train.shape[1] // 2, self.URM_train.shape[1] // 4] #"p_dims": [self.URM_train.shape[1], self.URM_train.shape[1]]
+
         }
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
