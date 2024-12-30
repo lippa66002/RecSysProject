@@ -320,7 +320,7 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_easeR(self, optuna_trial):
-        recommender_instance = EASE_R_PyTorch(self.URM_train)
+        recommender_instance = EASE_R_Recommender(self.URM_train)
         full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
             "l2": optuna_trial.suggest_float("l2", 1e-3, 1e3, log=True),

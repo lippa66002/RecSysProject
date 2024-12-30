@@ -13,7 +13,4 @@ import pandas as pd
 
 controller = ModelController()
 
-easer = EASE_R_PyTorch(controller.URM_train)
-easer.fit(10)
-cc,_ = controller.evaluator_test.evaluateRecommender(easer)
-print(cc.loc[10]["MAP"])
+optuna = controller.optunizer(ModelName.EASE_R_Recommender)
