@@ -326,7 +326,7 @@ class ModelController:
         recommender_instance = EASE_R_Recommender(self.URM_train)
         full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
-            "l2_norm": optuna_trial.suggest_float("l2_norm", 1e-3, 1e3, log=True),
+            "l2_norm": optuna_trial.suggest_float("l2_norm", 10, 1000, log=True),
             "normalize_matrix": optuna_trial.suggest_categorical("normalize_matrix", [True, False])
         }
         recommender_instance.fit(**full_hyperp)
