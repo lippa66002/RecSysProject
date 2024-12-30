@@ -235,8 +235,9 @@ class ModelController:
         return optuna_study.best_trial.params
 
     def objective_function_KNN_similarities(self, optuna_trial):
+        stacked = sps.vstack([0.8392863849420211 * self.URM_train, (1 - 0.8392863849420211) * self.ICM_all.T]).tocsr()
 
-        recommender_instance = ItemKNNCFRecommender(self.URM_train)
+        recommender_instance = ItemKNNCFRecommender(stacked)
         similarity = optuna_trial.suggest_categorical("similarity",
                                                       ['cosine', 'dice', 'jaccard', 'asymmetric', 'tversky',
                                                        'euclidean'])
@@ -308,7 +309,9 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_graph(self, optuna_trial):
-        recomm = RP3betaRecommender(self.URM_train)
+        stacked = sps.vstack([0.8392863849420211 * self.URM_train, (1 - 0.8392863849420211) * self.ICM_all.T]).tocsr()
+
+        recomm = RP3betaRecommender(stacked)
         full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
             "beta": optuna_trial.suggest_float("beta", 0, 1),
@@ -420,6 +423,8 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_SLIM_BPR_Cython(self, optuna_trial):
+        stacked = sps.vstack([0.8392863849420211 * self.URM_train, (1 - 0.8392863849420211) * self.ICM_all.T]).tocsr()
+
         recommender_instance = SLIM_BPR_Cython(self.URM_train)
         full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
