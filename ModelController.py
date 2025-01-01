@@ -327,9 +327,8 @@ class ModelController:
         full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
             "l2_norm": optuna_trial.suggest_float("l2_norm", 10, 1000, log=True),
-            "normalize_matrix": optuna_trial.suggest_categorical("normalize_matrix", [True, False])
         }
-        recommender_instance.fit(**full_hyperp)
+        recommender_instance.fit(**full_hyperp,normalize_matrix="false")
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
