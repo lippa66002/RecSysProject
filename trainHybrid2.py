@@ -65,7 +65,7 @@ hyb5.fit(0.27959722573911727,slim2,slim3)
 #hyb8.fit(0.8095536774911644,rp32,slim4)
 #hyb9 = HybridOptunable2(controller.URM_train)
 #hyb9.fit(0.039698998762088614,hyb8,itemmm)
-dd,_ = controller.evaluator_test.evaluateRecommender(hyb9)
+dd,_ = controller.evaluator_test.evaluateRecommender(hyb5)
 '''
 def objective_function_scores_hybrid_1( optuna_trial):
 
