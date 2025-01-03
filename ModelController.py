@@ -5,7 +5,8 @@ from Data_manager.split_functions.split_train_validation_random_holdout import \
 from EASE__R_PyTorch import EASE_R_PyTorch
 from Evaluation.Evaluator import EvaluatorHoldout
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
-from Recommenders.FactorizationMachines.LightFMRecommender import LightFMItemHybridRecommender
+from Recommenders.FactorizationMachines.LightFMRecommender import LightFMItemHybridRecommender, LightFMCFRecommender, \
+    LightFMUserHybridRecommender
 from Recommenders.FeatureWeighting.Cython.CFW_DVV_Similarity_Cython import CFW_DVV_Similarity_Cython
 from Recommenders.FeatureWeighting.Cython.CFW_D_Similarity_Cython import CFW_D_Similarity_Cython
 from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
@@ -153,8 +154,14 @@ class ModelController:
             model.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
             model = CFW_DVV_Similarity_Cython(self.URM_train, self.ICM_all, model.W_sparse)
             model.fit(**optuna_hpp)
+        elif model_name == ModelName.LightFMCFRecommender:
+            model = LightFMCFRecommender(self.URM_train)
+            model.fit(**optuna_hpp)
         elif model_name  == ModelName.LightFMItemHybridRecommender:
             model = LightFMItemHybridRecommender(self.URM_train, self.ICM_all)
+            model.fit(**optuna_hpp)
+        elif model_name == ModelName.LightFMUserHybridRecommender:
+            model = LightFMUserHybridRecommender(self.URM_train, self.ICM_all)
             model.fit(**optuna_hpp)
         elif model_name == ModelName.Hybrid_UserKNN_CF_CBF:
             model = UserKNN_CFCBF_Hybrid_Recommender(self.URM_train, self.ICM_all)
@@ -212,8 +219,12 @@ class ModelController:
             obj_func = self.objective_function_itemKNNCBF
         elif model_name == ModelName.CFW_DVV_Similarity_Cython:
             obj_func = self.objective_function_CFW_DVV_Similarity_Cython
+        elif model_name == ModelName.LightFMCFRecommender:
+            obj_func = self.objective_function_lightfm_cf
         elif model_name == ModelName.LightFMItemHybridRecommender:
-            obj_func = self.objective_function_LightFMItemHybridRecommender
+            obj_func = self.objective_function_lightfm_item_hybrid
+        elif model_name == ModelName.LightFMUserHybridRecommender:
+            obj_func = self.objective_function_lightfm_user_hybrid
         elif model_name == ModelName.Hybrid_UserKNN_CF_CBF:
             obj_func = self.objective_function_hybrid_UserKNN_CF_CBF
         elif model_name == ModelName.EASE_R_Filo:
@@ -621,23 +632,7 @@ class ModelController:
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
 
-    def objective_function_LightFMItemHybridRecommender(self, optuna_trial):
-        recommender_instance = LightFMItemHybridRecommender(self.URM_train, self.ICM_all)
 
-        full_hyperp = {
-            "epochs": optuna_trial.suggest_int("epochs", 10, 100),
-            "loss": optuna_trial.suggest_categorical("loss", ["bpr", "warp", "warp-kos"]),
-            "sgd_mode": optuna_trial.suggest_categorical("sgd_mode", ["adagrad", "adadelta"]),
-            "n_components": optuna_trial.suggest_int("n_components", 10, 200),
-            "item_alpha": optuna_trial.suggest_float("item_alpha", 1e-6, 1e-1, log=True),
-            "user_alpha": optuna_trial.suggest_float("user_alpha", 1e-6, 1e-1, log=True),
-            "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True)
-        }
-
-        recommender_instance.fit(**full_hyperp)
-        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
-
-        return result_df.loc[10]["MAP"]
 
     def objective_function_hybrid_UserKNN_CF_CBF(self, optuna_trial):
 
@@ -669,3 +664,47 @@ class ModelController:
         recommender_instance.fit(**full_hyperp)
         result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
         return result_df.loc[10]["MAP"]
+
+    def objective_function_lightfm_cf(self, optuna_trial):
+
+        recommender_instance = LightFMCFRecommender(self.URM_train)
+        full_hyperp = {
+            "n_components" : optuna_trial.suggest_int("n_components", 10, 200),
+            "loss" : optuna_trial.suggest_categorical("loss", ["bpr", "warp", "warp-kos"]),
+            "sgd_mode" : optuna_trial.suggest_categorical("sgd_mode", ["adagrad", "adadelta"]),
+            "item_alpha" : optuna_trial.suggest_float("item_alpha", 1e-6, 1e-1, log=True),
+            "user_alpha" : optuna_trial.suggest_float("user_alpha", 1e-6, 1e-1, log=True),
+            "learning_rate" : optuna_trial.suggest_float("learning_rate", 1e-3, 1e-1, log=True)
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_lightfm_item_hybrid(self, optuna_trial):
+        recommender_instance = LightFMItemHybridRecommender(self.URM_train, self.ICM_all)
+        full_hyperp = {
+            "n_components" : optuna_trial.suggest_int("n_components", 10, 200),
+            "loss" : optuna_trial.suggest_categorical("loss", ["bpr", "warp", "warp-kos"]),
+            "sgd_mode" : optuna_trial.suggest_categorical("sgd_mode", ["adagrad", "adadelta"]),
+            "item_alpha" : optuna_trial.suggest_float("item_alpha", 1e-6, 1e-1, log=True),
+            "user_alpha" : optuna_trial.suggest_float("user_alpha", 1e-6, 1e-1, log=True),
+            "learning_rate" : optuna_trial.suggest_float("learning_rate", 1e-3, 1e-1, log=True)
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+
+    def objective_function_lightfm_user_hybrid(self, optuna_trial):
+        recommender_instance = LightFMUserHybridRecommender(self.URM_train, self.ICM_all)
+        full_hyperp = {
+            "n_components" : optuna_trial.suggest_int("n_components", 10, 200),
+            "loss" : optuna_trial.suggest_categorical("loss", ["bpr", "warp", "warp-kos"]),
+            "sgd_mode" : optuna_trial.suggest_categorical("sgd_mode", ["adagrad", "adadelta"]),
+            "item_alpha" : optuna_trial.suggest_float("item_alpha", 1e-6, 1e-1, log=True),
+            "user_alpha" : optuna_trial.suggest_float("user_alpha", 1e-6, 1e-1, log=True),
+            "learning_rate" : optuna_trial.suggest_float("learning_rate", 1e-3, 1e-1, log=True)
+        }
+        recommender_instance.fit(**full_hyperp)
+        result_df, _ = self.evaluator_test.evaluateRecommender(recommender_instance)
+        return result_df.loc[10]["MAP"]
+

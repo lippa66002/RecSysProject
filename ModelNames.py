@@ -24,7 +24,11 @@ class ModelName(Enum):
     CFW_D_Similarity_Cython = "CFW_D_Similarity_Cython"
     MatrixFactorization_Cython_Recommender = "MatrixFactorization_Cython_Recommender"
     IALSRecommender = "IALSRecommender"
+
+    LightFMCFRecommender = "LightFMCFRecommender"
     LightFMItemHybridRecommender = "LightFMItemHybridRecommender"
+    LightFMUserHybridRecommender = "LightFMUserHybridRecommender"
+
     Hybrid_UserKNN_CF_CBF = "Hybrid_UserKNN_CF_CBF"
 
     ItemKNNCBFRecommender = "ItemKNNCBFRecommender"
