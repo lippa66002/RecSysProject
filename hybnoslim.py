@@ -19,13 +19,14 @@ item.fit(similarity= 'tversky', topK= 5, shrink= 15, tversky_alpha= 0.0291003114
 user = UserKNNCFRecommender(controller.URM_train)
 user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')
 
-'''
+
 
 def objective_function_scores_hybrid_1( optuna_trial):
+    print("rp3 + user")
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, rp3, user, bestrp3, slim1, slim1)
+    recom1 = ScoresHybridRecommender(controller.URM_train, rp3, user, rp3, rp3, rp3)
 
     alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
 
@@ -42,9 +43,9 @@ optuna_study.optimize(objective_function_scores_hybrid_1,
                               n_trials=50)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
+
+
 '''
-
-
 def objective_function_scores_hybrid_6( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
@@ -65,3 +66,4 @@ optuna_study.optimize(objective_function_scores_hybrid_6,
                       n_trials=100)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
+'''
