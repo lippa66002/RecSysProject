@@ -51,8 +51,8 @@ def objective_function_scores_hybrid_6( optuna_trial):
     recom1 = HybridOptunable2(controller.URM_train)
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
-    print("rp3 + user")
-    recom1.fit(alpha,rp3,bpr)
+    print("item + bpr")
+    recom1.fit(alpha,item,bpr)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
