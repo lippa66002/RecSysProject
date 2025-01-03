@@ -384,7 +384,9 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_userKNN(self, optuna_trial):
-        recommender_instance = UserKNNCFRecommender(self.URM_train)
+        stacked = sps.vstack([0.8392863849420211 * self.URM_train, (1 - 0.8392863849420211) * self.ICM_all.T]).tocsr()
+
+        recommender_instance = UserKNNCFRecommender(stacked)
         full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
             "shrink": optuna_trial.suggest_int("shrink", 0, 1000),
@@ -436,7 +438,7 @@ class ModelController:
     def objective_function_SLIM_BPR_Cython(self, optuna_trial):
         stacked = sps.vstack([0.8392863849420211 * self.URM_train, (1 - 0.8392863849420211) * self.ICM_all.T]).tocsr()
 
-        recommender_instance = SLIM_BPR_Cython(self.URM_train)
+        recommender_instance = SLIM_BPR_Cython(stacked)
         full_hyperp = {
             "topK": optuna_trial.suggest_int("topK", 5, 1000),
             "learning_rate": optuna_trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True),
