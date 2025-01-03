@@ -120,9 +120,10 @@ itemmm = ItemKNNCFRecommender(stacked)
 itemmm.fit(similarity= 'cosine', topK=5, shrink= 0)
 hyb9 = HybridOptunable2(controller.URM_train)
 hyb9.fit(0.039698998762088614,hyb8,itemmm)
-dd,_ = controller.evaluator_test.evaluateRecommender(hyb9)
-ease1 = EASE_R_Recommender(controller.URM_train)
-ease1.load_model(folder_path="_saved_models", file_name="easetrain")
+#dd,_ = controller.evaluator_test.evaluateRecommender(hyb9)
+#ease1 = EASE_R_Recommender(controller.URM_train)
+#ease1.load_model(folder_path="_saved_models", file_name="easetrain")
+
 '''
 def objective_function_scores_hybrid_1( optuna_trial):
 
@@ -154,7 +155,7 @@ def objective_function_scores_hybrid_6( optuna_trial):
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
-    recom1.fit(alpha,bestrp3,ease1)
+    recom1.fit(alpha,slim4,item)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
