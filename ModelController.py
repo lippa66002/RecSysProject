@@ -246,7 +246,8 @@ class ModelController:
         return optuna_study.best_trial.params
 
     def objective_function_KNN_similarities(self, optuna_trial):
-        stacked = sps.vstack([0.8392863849420211 * self.URM_train, (1 - 0.8392863849420211) * self.ICM_all.T]).tocsr()
+        alpha = optuna_trial.suggest_int("alpha", 0, 1)
+        stacked = sps.vstack([alpha * self.URM_train, (1 - alpha) * self.ICM_all.T]).tocsr()
 
         recommender_instance = ItemKNNCFRecommender(stacked)
         similarity = optuna_trial.suggest_categorical("similarity",
@@ -513,12 +514,12 @@ class ModelController:
         return result_df.loc[10]["MAP"]
 
     def objective_function_hybrid_different_loss_scores(self, optuna_trial):
-        model1 = RP3betaRecommender(self.URM_train)
-        model1.load_model(folder_path="_saved_models", file_name="RP3betaRecommender")
+        bpr = SLIM_BPR_Cython(self.URM_train)
+        bpr.load_model(folder_path="_saved_models", file_name="bprtrain")
         model2 = SLIMElasticNetRecommender(self.URM_train)
-        model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+        model2.load_model(folder_path="_saved_models", file_name="SLIMtrain")
 
-        recommender_instance = DifferentLossScoresHybridRecommender(self.URM_train, model1, model2)
+        recommender_instance = DifferentLossScoresHybridRecommender(self.URM_train, bpr, model2)
         full_hyperp = {
             "norm": optuna_trial.suggest_categorical("norm", [1, 2]),
             "alpha": optuna_trial.suggest_float("alpha", 0.0, 1.0)
@@ -557,7 +558,7 @@ class ModelController:
 
     def objective_function_CFW_DVV_Similarity_Cython(self, optuna_trial):
         model = SLIMElasticNetRecommender(self.URM_train)
-        model.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
+        model.load_model(folder_path="_saved_models", file_name="SLIMtrain")
         recommender_instance = CFW_DVV_Similarity_Cython(self.URM_train, self.ICM_all, model.W_sparse)
 
         full_hyperp = {
