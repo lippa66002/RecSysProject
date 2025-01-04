@@ -15,7 +15,7 @@ from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommende
 controller = ModelController()
 
 #stacked = sps.vstack([0.8718332784366307 * controller.URM_train, (1 - 0.8718332784366307) * controller.ICM_all.T]).tocsr()
-#stacked2 = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
+stacked2 = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
 stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
 
 #item = ItemKNNCFRecommender(controller.URM_train)
@@ -33,17 +33,17 @@ stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863
 #slim2 = SLIMElasticNetRecommender(controller.URM_train)
 #slim2.load_model(folder_path="_saved_models", file_name="SLIMtrain")
 
-#slim3 = SLIMElasticNetRecommender(stacked2)
-#slim3.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
+slim3 = SLIMElasticNetRecommender(stacked2)
+slim3.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
 
-slim4 = SLIMElasticNetRecommender(stacked3)
-slim4.load_model(folder_path="_saved_models",file_name="SLIMstackedTrain3")
+#slim4 = SLIMElasticNetRecommender(stacked3)
+#slim4.load_model(folder_path="_saved_models",file_name="SLIMstackedTrain3")
 
-bestrp3 = RP3betaRecommender(controller.URM_train)
-bestrp3.load_model(folder_path="_saved_models", file_name="rp3train")
+#bestrp3 = RP3betaRecommender(controller.URM_train)
+#bestrp3.load_model(folder_path="_saved_models", file_name="rp3train")
 
-#rp32 = RP3betaRecommender(stacked3)
-#rp32.fit(topK= 21, beta= 0.2263343041398906, alpha= 0.47403955777118195)
+rp32 = RP3betaRecommender(stacked3)
+rp32.fit(topK= 21, beta= 0.2263343041398906, alpha= 0.47403955777118195)
 
 #bpr = SLIM_BPR_Cython(controller.URM_train)
 #bpr.load_model(folder_path="_saved_models", file_name="bprtrain")
@@ -97,7 +97,7 @@ def objective_function_scores_hybrid_6(optuna_trial):
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
-    recom1.fit(alpha, bestrp3 , slim4)
+    recom1.fit(alpha, rp32 , slim3)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -107,7 +107,7 @@ optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
 optuna_study.optimize(objective_function_scores_hybrid_6,
                       callbacks=[save_results],
-                      n_trials=50)
+                      n_trials=20)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
@@ -116,7 +116,7 @@ import optuna.visualization as vis
 
 # Generate and show plots
 optimization_history = vis.plot_optimization_history(optuna_study)
-optimization_history.write_html("OH_bestrp3_slim4.html")
+optimization_history.write_html("OH_rp32_slim3.html")
 
 
 
