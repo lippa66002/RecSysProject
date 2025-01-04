@@ -1,16 +1,12 @@
-import pandas as pd
 import optuna
+import pandas as pd
+
 import DataHandler
 from ModelController import ModelController
 from Optimize.SaveResults import SaveResults
+from EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
-from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
-from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
-from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
-from Recommenders.Neural.MultVAERecommender import MultVAERecommender
-from Recommenders.Neural.MultVAE_PyTorch_Recommender import MultVAERecommender_PyTorch
-from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
@@ -29,6 +25,7 @@ controller = ModelController()
 
 slim = SLIMElasticNetRecommender(controller.URM_train)
 slim.fit(alpha =  0.00022742003969239836, topK =  709, l1_ratio =  0.1488442906776265)
+slim.save_model(folder_path="_saved_models", file_name="slim_train_f")
 
 #bpr = SLIM_BPR_Cython(controller.URM_train)
 #bpr.fit(topK =  11, learning_rate =  0.04193849345153912, lambda_i=  0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric =  True, sgd_mode =  'adagrad')
@@ -37,23 +34,30 @@ slim.fit(alpha =  0.00022742003969239836, topK =  709, l1_ratio =  0.14884429067
 #item.fit(similarity =  "cosine", topK =  8, shrink= 12)
 
 rp3 = RP3betaRecommender(controller.URM_train)
-rp3.fit(topK= 12, alpha =  0.5769111396825488, beta= 0.0019321798490027353)
+rp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
+slim.save_model(folder_path="_saved_models", file_name="rp3_train_f")
+
+easeR = EASE_R_Recommender(controller.URM_train)
+easeR.fit(topK= 32, l2_norm= 20.402285200199643, normalize_matrix= False)
+slim.save_model(folder_path="_saved_models", file_name="ease_train_f")
+
 
 user = UserKNNCFRecommender(controller.URM_train)
-user.fit(similarity =  "dice", topK= 19, shrink= 737)
+user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')
+slim.save_model(folder_path="_saved_models", file_name="user_train_f")
 
 #items = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
 #items.fit(topK= 6, shrink= 693, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
 
-hyb = ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train, controller.ICM_all)
-hyb.fit(topK =  6, shrink =  167, similarity =  'asymmetric', normalize =  False, feature_weighting =  'BM25', ICM_weight =  0.375006792830105)
+# hyb = ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train, controller.ICM_all)
+# hyb.fit(topK =  6, shrink =  167, similarity =  'asymmetric', normalize =  False, feature_weighting =  'BM25', ICM_weight =  0.375006792830105)
 
 
 
 
 
 def objective_function_scores_3models(optuna_trial):
-    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, user, hyb, slim)
+    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, easeR, user, slim)
 
     x = optuna_trial.suggest_float("x", 0.0, 1.0)
     y = optuna_trial.suggest_float("y", 0.0, 1.0)
@@ -68,7 +72,7 @@ def objective_function_scores_3models(optuna_trial):
     return result_df.loc[10]["MAP"]
 
 def objective_function_scores_4models(optuna_trial):
-    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, user, hyb, slim)
+    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, easeR, user, slim)
 
     # Sample x, y, and z to calculate weights
     x = optuna_trial.suggest_float("x", 0.0, 1.0)
@@ -90,7 +94,7 @@ optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
 optuna_study.optimize(objective_function_scores_3models,
                       callbacks=[save_results],
-                      n_trials=50)
+                      n_trials=25)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
@@ -100,6 +104,6 @@ optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
 optuna_study.optimize(objective_function_scores_4models,
                       callbacks=[save_results],
-                      n_trials=50)
+                      n_trials=25)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
