@@ -31,16 +31,19 @@ top_pop = TopPop(controller.URM_boost)
 top_pop.fit()
 item = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
 item.fit(topK= 9, shrink= 956, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
-ease = EASE_R_Recommender(controller.URM_train)
-ease.load_model(folder_path="_saved_models", file_name="easetrain3")
+#ease = EASE_R_Recommender(controller.URM_train)
+#ease.load_model(folder_path="_saved_models", file_name="easetrain3")
 
-
+score = ScoresHybridRecommender(controller.URM_train, user, slim4, bestrp3, slim4, slim4)
+score.fit(0.006228402274954442, 1-0.006228402274954442, 0.21467215921316565, 0, 0)
+dd, _ = controller.evaluator_test.evaluateRecommender(score)
+print(dd.loc[10]["MAP"])
 def objective_function_scores_hybrid_1( optuna_trial):
     print("user + slim + ease")
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, user, slim4, ease, slim4, slim4)
+    recom1 = ScoresHybridRecommender(controller.URM_train, user, slim4, bestrp3, item, slim4)
 
     alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
 
@@ -50,7 +53,7 @@ def objective_function_scores_hybrid_1( optuna_trial):
 
 
 
-    recom1.fit(beta, 1-beta , alpha, 0, 0)
+    recom1.fit(beta, 1-beta , alpha, 0.21467215921316565, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
