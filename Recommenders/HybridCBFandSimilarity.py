@@ -1,4 +1,4 @@
-from sympy.codegen.ast import continue_
+from Recommenders.BaseSimilarityMatrixRecommender import BaseItemSimilarityMatrixRecommender
 
 
 class HybridRecommenderCBFandSimilarity(BaseItemSimilarityMatrixRecommender):

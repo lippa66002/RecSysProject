@@ -1,20 +1,15 @@
-import DataHandler
-from ModelController import ModelController
-from ModelNames import ModelName
-from Data_manager.split_functions.split_train_validation_random_holdout import split_train_in_two_percentage_global_sample
-from Evaluation.Evaluator import EvaluatorHoldout
-import optuna
 import pandas as pd
 
+import DataHandler
+from ModelController import ModelController
+from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
+from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
-from Recommenders.HybridDifferentLossFunctions import DifferentLossScoresHybridRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
-from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
-from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
-from Recommenders.KNN.ItemKNNSimilarityHybridRecommender import ItemKNNSimilarityHybridRecommender
-from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
-from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
+import scipy.sparse as sps
+
+from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",
                                 sep=",",
@@ -30,7 +25,7 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
-controller = ModelController(URM_all, ICM_all)
+controller = ModelController()
 
 """
 recommender_instance = HybridOptunable2(controller.URM_all)
@@ -69,12 +64,28 @@ model2 = SLIMElasticNetRecommender(controller.URM_train)
 model1.load_model(folder_path="_saved_models", file_name="RP3betaRecommender")
 model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
 """
+stacked = sps.vstack([0.6814451172353111 * URM_all, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
+slim = SLIMElasticNetRecommender(stacked)
+slim.load_model(folder_path="_saved_models", file_name="SLIMstackedAll1")
 
-recommender_instance = SLIMElasticNetRecommender(controller.URM_all)
-recommender_instance.fit(alpha= 0.00022742003969239836, topK= 709, l1_ratio= 0.1488442906776265)
+#ease = EASE_R_Recommender(URM_all)
+#ease.load_model(folder_path="_saved_models", file_name="easeall3")
 
 
-recommender_instance.save_model(folder_path="_saved_models/all", file_name="SLIMElasticNetRecommender_all")
+rp3 = RP3betaRecommender(controller.URM_train)
+rp3.load_model(folder_path="_saved_models", file_name="rp3train")
+
+p3 = P3alphaRecommender(URM_all)
+p3.fit(topK= 15, alpha= 0.5657433667229401, min_rating= 0, implicit= False, normalize_similarity= True)
+p3.save_model(folder_path="_saved_models", file_name="p3alpha_all_f")
+
+
+x= 0.767
+y= 0.879*(1-x)
+z= (1-x)*(1-y)
+recommender_instance = ScoresHybridRecommender(URM_all, slim, rp3, p3, p3, slim)
+recommender_instance.fit(x, y, z, 0, 0)
+
 
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)

@@ -25,8 +25,7 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 controller = ModelController()
 
 slim = SLIMElasticNetRecommender(controller.URM_train)
-slim.fit(alpha =  0.00022742003969239836, topK =  709, l1_ratio =  0.1488442906776265)
-slim.save_model(folder_path="_saved_models", file_name="slim_train_f")
+slim.load_model(folder_path="_saved_models", file_name="SLIMtrain")
 
 #bpr = SLIM_BPR_Cython(controller.URM_train)
 #bpr.fit(topK =  11, learning_rate =  0.04193849345153912, lambda_i=  0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric =  True, sgd_mode =  'adagrad')
@@ -35,15 +34,18 @@ slim.save_model(folder_path="_saved_models", file_name="slim_train_f")
 #item.fit(similarity =  "cosine", topK =  8, shrink= 12)
 
 rp3 = RP3betaRecommender(controller.URM_train)
-rp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
-slim.save_model(folder_path="_saved_models", file_name="rp3_train_f")
+rp3.load_model(folder_path="_saved_models", file_name="rp3train")
+#rp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
+#rp3.save_model(folder_path="_saved_models", file_name="rp3_train_f")
 
-#easeR = EASE_R_Recommender(controller.URM_train)
+easeR = EASE_R_Recommender(controller.URM_train)
+slim.load_model(folder_path="_saved_models", file_name="")
 #easeR.fit(topK= 32, l2_norm= 20.402285200199643, normalize_matrix= False)
 #slim.save_model(folder_path="_saved_models", file_name="ease_train_f")
 
 p3 = P3alphaRecommender(controller.URM_train)
 p3.fit(topK= 15, alpha= 0.5657433667229401, min_rating= 0, implicit= False, normalize_similarity= True)
+p3.save_model(folder_path="_saved_models", file_name="p3alpha_train_f")
 
 user = UserKNNCFRecommender(controller.URM_train)
 user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')

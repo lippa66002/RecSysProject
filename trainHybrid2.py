@@ -6,8 +6,10 @@ from Optimize.SaveResults import SaveResults
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
+from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
 
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
+from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
@@ -16,7 +18,7 @@ controller = ModelController()
 
 #stacked = sps.vstack([0.8718332784366307 * controller.URM_train, (1 - 0.8718332784366307) * controller.ICM_all.T]).tocsr()
 stacked2 = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
-stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
+#stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
 
 #item = ItemKNNCFRecommender(controller.URM_train)
 #item.load_model(folder_path="_saved_models", file_name="itemtrain")
@@ -36,20 +38,28 @@ stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863
 slim3 = SLIMElasticNetRecommender(stacked2)
 slim3.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
 
+#itemcfcbf = ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train, controller.ICM_all)
+#itemcfcbf.fit(topK =  6, shrink =  167, similarity =  'asymmetric', normalize =  False, feature_weighting =  'BM25', ICM_weight =  0.375006792830105)
+
 #slim4 = SLIMElasticNetRecommender(stacked3)
+#slim4.fit(alpha =5.632458754549518e-05, topK=619, l1_ratio= 0.053794482642909716)
 #slim4.load_model(folder_path="_saved_models",file_name="SLIMstackedTrain3")
 
-#bestrp3 = RP3betaRecommender(controller.URM_train)
-#bestrp3.load_model(folder_path="_saved_models", file_name="rp3train")
+bestrp3 = RP3betaRecommender(controller.URM_train)
+bestrp3.load_model(folder_path="_saved_models", file_name="rp3train")
 
-rp32 = RP3betaRecommender(stacked3)
-rp32.fit(topK= 21, beta= 0.2263343041398906, alpha= 0.47403955777118195)
+#rp32 = RP3betaRecommender(stacked3)
+#rp32.fit(topK= 21, beta= 0.2263343041398906, alpha= 0.47403955777118195)
+
+#itemcbf = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
+#itemcbf.fit(topK= 6, shrink= 693, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
+#itemcbf.save_model(folder_path="_saved_models", file_name="itemcbf_train_f")
 
 #bpr = SLIM_BPR_Cython(controller.URM_train)
 #bpr.load_model(folder_path="_saved_models", file_name="bprtrain")
 
-#ease1 = EASE_R_Recommender(controller.URM_train)
-#ease1.load_model(folder_path="_saved_models", file_name="easetrain")
+#ease = EASE_R_Recommender(controller.URM_train)
+#ease.load_model(folder_path="_saved_models", file_name="easetrain3")
 
 #hyb1 = HybridOptunable2(controller.URM_train)
 #hyb1.fit(0.5903144712291872,item,bestrp3)
@@ -97,7 +107,7 @@ def objective_function_scores_hybrid_6(optuna_trial):
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
-    recom1.fit(alpha, rp32 , slim3)
+    recom1.fit(alpha, slim3 , bestrp3)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -107,7 +117,7 @@ optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
 optuna_study.optimize(objective_function_scores_hybrid_6,
                       callbacks=[save_results],
-                      n_trials=20)
+                      n_trials=50)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
@@ -116,7 +126,15 @@ import optuna.visualization as vis
 
 # Generate and show plots
 optimization_history = vis.plot_optimization_history(optuna_study)
-optimization_history.write_html("OH_rp32_slim3.html")
+# Add annotation for the best alpha value
+optimization_history.add_annotation(
+    x=optuna_study.best_trial.number,
+    y=optuna_study.best_value,
+    text=f"Best alpha: {optuna_study.best_trial.params:.4f}",
+    showarrow=True,
+    arrowhead=2
+)
+optimization_history.write_html("OH_slim3_bestrp3.html")
 
 
 
