@@ -17,10 +17,7 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 controller = ModelController()
 
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
-ease2 = EASE_R_Recommender(controller.URM_train)
-ease2.fit(topK= 32, l2_norm =20.402285200199643,normalize_matrix=False)
-ease2.save_model(folder_path="_saved_models", file_name="easetrain3")
-ease2 = EASE_R_Recommender(URM_all)
-ease2.fit(topK= 32, l2_norm =20.402285200199643,normalize_matrix=False)
-ease2.save_model(folder_path="_saved_models", file_name="easeall3")
-
+ease2 = EASE_R_Recommender(controller.URM_boost)
+ease2.load_model(folder_path="_saved_models", file_name="easeboost3")
+ea,_ = controller.evaluator_test.evaluateRecommender(ease2)
+print(ea.loc[10]["MAP"])
