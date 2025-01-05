@@ -37,7 +37,7 @@ def objective_function_scores_hybrid_1( optuna_trial):
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, slimbpr, slim4, bestrp3, slim4, slim4)
+    recom1 = ScoresHybridRecommender(controller.URM_train, user, slim4, bestrp3, slim4, slim4)
 
     alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
 
@@ -59,7 +59,7 @@ optuna_study.optimize(objective_function_scores_hybrid_1,
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
-
+'''
 
 def objective_function_scores_hybrid_6( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
@@ -83,3 +83,4 @@ optuna_study.optimize(objective_function_scores_hybrid_6,
                       n_trials=200)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
+'''
