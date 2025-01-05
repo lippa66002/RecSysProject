@@ -18,6 +18,7 @@ controller = ModelController()
 
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 ease2 = EASE_R_Recommender(controller.URM_boost)
+ease2.fit(topK= 32, l2_norm= 20.402285200199643)
 ease2.save_model(folder_path="_saved_models", file_name="easeboost3")
 ea,_ = controller.evaluator_test.evaluateRecommender(ease2)
 print(ea.loc[10]["MAP"])
