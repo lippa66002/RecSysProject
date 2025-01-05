@@ -33,7 +33,7 @@ item.fit(topK= 9, shrink= 956, similarity= 'cosine', normalize= True, feature_we
 
 
 def objective_function_scores_hybrid_1( optuna_trial):
-    print("score")
+    print("user + slim")
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
