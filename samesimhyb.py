@@ -1,7 +1,5 @@
 import optuna
-from scipy.constants import alpha
 import scipy.sparse as sps
-import DataHandler
 from ModelController import ModelController
 
 from Optimize.SaveResults import SaveResults
@@ -16,6 +14,7 @@ from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommende
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 '''
+
 print("Start")
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 
@@ -120,22 +119,34 @@ itemmm = ItemKNNCFRecommender(stacked)
 itemmm.fit(similarity= 'cosine', topK=5, shrink= 0)
 hyb9 = HybridOptunable2(controller.URM_train)
 hyb9.fit(0.039698998762088614,hyb8,itemmm)
-#dd,_ = controller.evaluator_test.evaluateRecommender(hyb9)
+ease2 = EASE_R_Recommender(controller.URM_train)
+ease2.load_model(folder_path="_saved_models", file_name="easetrain3")
+dd,_ = controller.evaluator_test.evaluateRecommender(slim4)
+print(dd.loc[10]["MAP"])
+dd,_ = controller.evaluator_test.evaluateRecommender(ease2)
+print(dd.loc[10]["MAP"])
+dd,_ = controller.evaluator_test.evaluateRecommender(bestrp3)
+print(dd.loc[10]["MAP"])
 #ease1 = EASE_R_Recommender(controller.URM_train)
 #ease1.load_model(folder_path="_saved_models", file_name="easetrain")
 
-'''
+
 def objective_function_scores_hybrid_1( optuna_trial):
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, ease1, hyb6, bestrp3, slim1, slim1)
+    recom1 = ScoresHybridRecommender(controller.URM_train, user, slim4, bestrp3, slim1, slim1)
 
-    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 100.0)
+    beta = optuna_trial.suggest_float("beta", 0.0, 100.0)
+    gamma = optuna_trial.suggest_float("gamma", 0.0, 100.0)
 
 
 
-    recom1.fit(alpha, 1-alpha, 0, 0, 0)
+
+
+
+    recom1.fit(alpha, beta, gamma, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -143,10 +154,10 @@ optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
 optuna_study.optimize(objective_function_scores_hybrid_1,
                               callbacks=[save_results],
-                              n_trials=50)
+                              n_trials=200)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
-'''
+
 
 def objective_function_scores_hybrid_6( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
@@ -155,7 +166,7 @@ def objective_function_scores_hybrid_6( optuna_trial):
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
-    recom1.fit(alpha,slim4,item)
+    recom1.fit(alpha,slim2,bestrp3)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
