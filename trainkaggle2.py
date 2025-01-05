@@ -20,6 +20,19 @@ bestrp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
 stacked = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
 slim4 = SLIMElasticNetRecommender(stacked)
 slim4.load_model(folder_path="_saved_models",file_name="SLIMstackedTrain3")
+slim2 = SLIMElasticNetRecommender(controller.URM_train)
+slim2.load_model(folder_path="_saved_models", file_name="SLIMtrain")
+stacked2 = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
+slim3 = SLIMElasticNetRecommender(stacked2)
+slim3.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
+hyb5 = HybridOptunable2(controller.URM_train)
+hyb5.fit(0.27959722573911727,slim2,slim3)
+hyb6 = HybridOptunable2(controller.URM_train)
+hyb6.fit(0.18923840370620948,hyb5,bestrp3)
+hyb6 = HybridOptunable2(controller.URM_train)
+hyb6.fit(0.18923840370620948,hyb5,bestrp3)
+rr, _ = controller.evaluator_test.evaluateRecommender(hyb6)
+print(rr.loc[10]["MAP"])
 itemmm = ItemKNNCFRecommender(controller.URM_train)
 itemmm.fit(similarity= 'tversky', topK= 5, shrink= 15, tversky_alpha= 0.0291003114865242, tversky_beta= 1.0501107741561788)
 user = UserKNNCFRecommender(controller.URM_train)
@@ -34,26 +47,16 @@ item.fit(topK= 9, shrink= 956, similarity= 'cosine', normalize= True, feature_we
 #ease = EASE_R_Recommender(controller.URM_train)
 #ease.load_model(folder_path="_saved_models", file_name="easetrain3")
 
-score = ScoresHybridRecommender(controller.URM_train, user, slim4, bestrp3, slim4, slim4)
-score.fit(0.006228402274954442, 1-0.006228402274954442, 0.21467215921316565, 0, 0)
-dd, _ = controller.evaluator_test.evaluateRecommender(score)
-print(dd.loc[10]["MAP"])
+#score = ScoresHybridRecommender(controller.URM_train, user, slim4, bestrp3, slim4, slim4)
+#score.fit(0.006228402274954442, 1-0.006228402274954442, 0.21467215921316565, 0, 0)
 def objective_function_scores_hybrid_1( optuna_trial):
-    print("user + slim + ease")
+    print("user + hyb6")
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, user, slim4, bestrp3, item, slim4)
-
-    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
-
-    beta = 0.006228402274954442
-
-
-
-
-
-    recom1.fit(beta, 1-beta , alpha, 0.21467215921316565, 0)
+    recom1 = ScoresHybridRecommender(controller.URM_train, user, hyb6, bestrp3, item, slim4)
+    alpha = optuna_trial.suggest_float("alpha", 0, 1)
+    recom1.fit(alpha, 1-alpha, 0, 0., 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
