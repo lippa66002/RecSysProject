@@ -64,27 +64,19 @@ model2 = SLIMElasticNetRecommender(controller.URM_train)
 model1.load_model(folder_path="_saved_models", file_name="RP3betaRecommender")
 model2.load_model(folder_path="_saved_models", file_name="SLIMElasticNetRecommender")
 """
-stacked = sps.vstack([0.6814451172353111 * URM_all, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
-slim = SLIMElasticNetRecommender(stacked)
-slim.load_model(folder_path="_saved_models", file_name="SLIMstackedAll1")
+stacked = sps.vstack([0.8392863849420211 * URM_all, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
+slim = SLIMElasticNetRecommender(URM_all)
+slim.fit(alpha= 0.00022742003969239836, topK= 709, l1_ratio= 0.1488442906776265)
 
 #ease = EASE_R_Recommender(URM_all)
 #ease.load_model(folder_path="_saved_models", file_name="easeall3")
 
 
-rp3 = RP3betaRecommender(controller.URM_train)
-rp3.load_model(folder_path="_saved_models", file_name="rp3train")
+rp3 = RP3betaRecommender(stacked)
+rp3.fit(topK= 21, beta= 0.2263343041398906, alpha= 0.47403955777118195)
 
-p3 = P3alphaRecommender(URM_all)
-p3.fit(topK= 15, alpha= 0.5657433667229401, min_rating= 0, implicit= False, normalize_similarity= True)
-p3.save_model(folder_path="_saved_models", file_name="p3alpha_all_f")
-
-
-x= 0.767
-y= 0.879*(1-x)
-z= (1-x)*(1-y)
-recommender_instance = ScoresHybridRecommender(URM_all, slim, rp3, p3, p3, slim)
-recommender_instance.fit(x, y, z, 0, 0)
+recommender_instance = HybridOptunable2(URM_all)
+recommender_instance.fit(0.24002684672441646, slim, rp3)
 
 
 
