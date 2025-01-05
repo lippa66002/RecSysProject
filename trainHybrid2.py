@@ -17,8 +17,8 @@ from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommende
 controller = ModelController()
 
 #stacked = sps.vstack([0.8718332784366307 * controller.URM_train, (1 - 0.8718332784366307) * controller.ICM_all.T]).tocsr()
-stacked2 = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
-#stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
+#stacked2 = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
+stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
 
 #item = ItemKNNCFRecommender(controller.URM_train)
 #item.load_model(folder_path="_saved_models", file_name="itemtrain")
@@ -35,13 +35,14 @@ stacked2 = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451
 #slim2 = SLIMElasticNetRecommender(controller.URM_train)
 #slim2.load_model(folder_path="_saved_models", file_name="SLIMtrain")
 
-slim3 = SLIMElasticNetRecommender(stacked2)
-slim3.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
+#slim3 = SLIMElasticNetRecommender(stacked2)
+#slim3.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
 
 itemcfcbf = ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train, controller.ICM_all)
 itemcfcbf.fit(topK =  6, shrink =  167, similarity =  'asymmetric', normalize =  False, feature_weighting =  'BM25', ICM_weight =  0.375006792830105)
 
-#slim4 = SLIMElasticNetRecommender(stacked3)
+slim4 = SLIMElasticNetRecommender(stacked3)
+slim4.fit(alpha =5.632458754549518e-05, topK=619, l1_ratio= 0.053794482642909716)
 #slim4.load_model(folder_path="_saved_models",file_name="SLIMstackedTrain3")
 
 #bestrp3 = RP3betaRecommender(controller.URM_train)
@@ -106,7 +107,7 @@ def objective_function_scores_hybrid_6(optuna_trial):
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
-    recom1.fit(alpha, itemcfcbf , slim3)
+    recom1.fit(alpha, itemcfcbf , slim4)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -133,7 +134,7 @@ optimization_history.add_annotation(
     showarrow=True,
     arrowhead=2
 )
-optimization_history.write_html("OH_itemcfcbf_slim3.html")
+optimization_history.write_html("OH_itemcfcbf_slim4.html")
 
 
 
