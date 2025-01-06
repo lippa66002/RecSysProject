@@ -13,6 +13,7 @@ from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybr
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
+from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 controller = ModelController()
 
@@ -26,8 +27,8 @@ stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863
 #itemmm = ItemKNNCFRecommender(stacked3)
 #itemmm.fit(similarity= 'cosine', topK=5, shrink= 0)
 
-#user = UserKNNCFRecommender(controller.URM_train)
-#user.load_model(folder_path="_saved_models", file_name="Usertrain")
+user = UserKNNCFRecommender(controller.URM_train)
+user.load_model(folder_path="_saved_models", file_name="user_train_f")
 
 #slim1 = SLIMElasticNetRecommender(stacked)
 #slim1.load_model(folder_path="_saved_models", file_name="SLIMstackedTrain2")
@@ -49,8 +50,8 @@ slim2.load_model(folder_path="_saved_models", file_name="SLIMtrain")
 #bestrp3.load_model(folder_path="_saved_models", file_name="rp3train")
 
 rp32 = RP3betaRecommender(stacked3)
-rp32.fit(topK= 21, beta= 0.2263343041398906, alpha= 0.47403955777118195)
-rp32.save_model(folder_path="_saved_models", file_name="rp3_stacked3_f")
+#rp32.fit(topK= 21, beta= 0.2263343041398906, alpha= 0.47403955777118195)
+rp32.load_model(folder_path="_saved_models", file_name="rp3_stacked3_f")
 
 #itemcbf = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
 #itemcbf.fit(topK= 6, shrink= 693, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
@@ -61,6 +62,9 @@ rp32.save_model(folder_path="_saved_models", file_name="rp3_stacked3_f")
 
 #ease = EASE_R_Recommender(controller.URM_train)
 #ease.load_model(folder_path="_saved_models", file_name="easetrain3")
+
+hyb1 = HybridOptunable2(controller.URM_train)
+hyb1.fit(0.24002684672441646, slim2, rp32)
 
 #hyb1 = HybridOptunable2(controller.URM_train)
 #hyb1.fit(0.5903144712291872,item,bestrp3)
@@ -104,11 +108,12 @@ print(optuna_study.best_trial.params)
 def objective_function_scores_hybrid_6(optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = HybridOptunable2(controller.URM_train)
+    #recom1 = HybridOptunable2(controller.URM_train)
+    recom1 = ScoresHybridRecommender(controller.URM_train, hyb1, user, slim2, slim2, slim2)
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
-    recom1.fit(alpha, slim2 , rp32)
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
