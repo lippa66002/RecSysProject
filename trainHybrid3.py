@@ -5,7 +5,7 @@ import scipy.sparse as sps
 import DataHandler
 from ModelController import ModelController
 from Optimize.SaveResults import SaveResults
-from EASE_R_Recommender import EASE_R_Recommender
+from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
@@ -41,8 +41,8 @@ rp3.load_model(folder_path="_saved_models", file_name="rp3_stacked3_f")
 #rp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
 #rp3.save_model(folder_path="_saved_models", file_name="rp3_train_f")
 
-#easeR = EASE_R_Recommender(controller.URM_train)
-#easeR.load_model(folder_path="_saved_models", file_name="easetrain3")
+easeR = EASE_R_Recommender(controller.URM_train)
+easeR.load_model(folder_path="_saved_models", file_name="easetrainll")
 #easeR.fit(topK= 32, l2_norm= 20.402285200199643, normalize_matrix= False)
 #slim.save_model(folder_path="_saved_models", file_name="ease_train_f")
 
@@ -60,9 +60,36 @@ user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_
 # hyb = ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train, controller.ICM_all)
 # hyb.fit(topK =  6, shrink =  167, similarity =  'asymmetric', normalize =  False, feature_weighting =  'BM25', ICM_weight =  0.375006792830105)
 
+def objective_function_scores_5models(optuna_trial):
+    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, easeR, user, p3)
+
+    # Sample x, y, and z to calculate weights
+    x = optuna_trial.suggest_float("x", 0.0, 1.0)
+    y = optuna_trial.suggest_float("y", 0.0, 1.0)
+    z = optuna_trial.suggest_float("z", 0.0, 1.0)
+    w = optuna_trial.suggest_float("w", 0.0, 1.0)
+
+    alpha = x
+    beta = y * (1 - x)
+    gamma = z * (1 - x) * (1 - y)
+    delta = w * (1 - x) * (1 - y) * (1 - z)
+    epsilon = (1 - x) * (1 - y) * (1 - z) * (1 - w)
+
+    recom.fit(alpha, beta, gamma, delta, epsilon)
+
+    result_df, _ = controller.evaluator_test.evaluateRecommender(recom)
+    return result_df.loc[10]["MAP"]
+
+optuna_study = optuna.create_study(direction="maximize")
+save_results = SaveResults()
+optuna_study.optimize(objective_function_scores_5models,
+                      callbacks=[save_results],
+                      n_trials=50)
+print(save_results.results_df)
+print(optuna_study.best_trial.params)
 
 
-
+"""
 
 def objective_function_scores_3models(optuna_trial):
     recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, user, p3, slim)
@@ -115,3 +142,4 @@ optuna_study.optimize(objective_function_scores_4models,
                       n_trials=50)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
+"""
