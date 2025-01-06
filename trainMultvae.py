@@ -2,4 +2,4 @@ from ModelController import ModelController
 from ModelNames import ModelName
 
 controller = ModelController()
-optuna = controller.optunizer(ModelName.MultVAERecommender_PyTorch)
+optuna = controller.optunizer(ModelName.MultVAERecommender)
