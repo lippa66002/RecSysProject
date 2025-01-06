@@ -3,6 +3,7 @@ import scipy.sparse as sps
 
 from ModelController import ModelController
 from Optimize.SaveResults import SaveResults
+from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
@@ -55,11 +56,15 @@ rp32.load_model(folder_path="_saved_models", file_name="rp3_stacked3_f")
 #bpr = SLIM_BPR_Cython(controller.URM_train)
 #bpr.load_model(folder_path="_saved_models", file_name="bprtrain")
 
-#ease = EASE_R_Recommender(controller.URM_train)
-#ease.load_model(folder_path="_saved_models", file_name="easetrain3")
+ease = EASE_R_Recommender(controller.URM_train)
+ease.load_model(folder_path="_saved_models", file_name="easetrainll")
 
 hyb1 = HybridOptunable2(controller.URM_train)
 hyb1.fit(0.24002684672441646, slim2, rp32)
+
+a=0.9947414494756955
+hyb2 = ScoresHybridRecommender(controller.URM_train, hyb1, user, slim2, slim2, slim2)
+hyb2.fit(a, 1-a, 0, 0, 0)
 
 #hyb1 = HybridOptunable2(controller.URM_train)
 #hyb1.fit(0.5903144712291872,item,bestrp3)
@@ -104,7 +109,7 @@ def objective_function_scores_hybrid_6(optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
     #recom1 = HybridOptunable2(controller.URM_train)
-    recom1 = ScoresHybridRecommender(controller.URM_train, hyb1, user, slim2, slim2, slim2)
+    recom1 = ScoresHybridRecommender(controller.URM_train, hyb2, ease, slim2, slim2, slim2)
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 

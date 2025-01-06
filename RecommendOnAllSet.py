@@ -6,10 +6,12 @@ from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
+from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 import scipy.sparse as sps
 
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
+from prova import recommender_instance
 
 URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",
                                 sep=",",
@@ -68,16 +70,37 @@ stacked = sps.vstack([0.8392863849420211 * URM_all, (1 - 0.8392863849420211) * c
 slim = SLIMElasticNetRecommender(URM_all)
 slim.fit(alpha= 0.00022742003969239836, topK= 709, l1_ratio= 0.1488442906776265)
 
-#ease = EASE_R_Recommender(URM_all)
-#ease.load_model(folder_path="_saved_models", file_name="easeall3")
-
+ease = EASE_R_Recommender(URM_all)
+ease.load_model(folder_path="_saved_models", file_name="easeall3")
 
 rp3 = RP3betaRecommender(stacked)
 rp3.fit(topK= 21, beta= 0.2263343041398906, alpha= 0.47403955777118195)
 
-recommender_instance = HybridOptunable2(URM_all)
-recommender_instance.fit(0.24002684672441646, slim, rp3)
+#hyb = HybridOptunable2(URM_all)
+#hyb.fit(0.24002684672441646, slim, rp3)
 
+user = UserKNNCFRecommender(URM_all)
+user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
+
+p3 = P3alphaRecommender(URM_all)
+p3.load_model(folder_path="_saved_models", file_name="p3alpha_all_f")
+
+#alpha=0.9947414494756955
+recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, ease, user, p3)
+
+# Sample x, y, and z to calculate weights
+x = 0.6709569697381116
+y = 0.9407851726464864
+z = 0.668214489158288
+w = 0.8401488658427435
+
+alpha = x
+beta = y * (1 - x)
+gamma = z * (1 - x) * (1 - y)
+delta = w * (1 - x) * (1 - y) * (1 - z)
+epsilon = (1 - x) * (1 - y) * (1 - z) * (1 - w)
+
+recommender_instance.fit(alpha, beta, gamma, delta, epsilon)
 
 
 result_df, _ = controller.evaluator_test.evaluateRecommender(recommender_instance)
