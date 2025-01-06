@@ -34,13 +34,16 @@ user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_
 
 
 def objective_function_scores_hybrid_1( optuna_trial):
-    print("itemhyb + hyb2")
+    print("hyb2 + ease + user")
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, itemhyb, hyb2, user, user, user)
-    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
-    recom1.fit(alpha, 1-alpha, 0, 0., 0)
+    recom1 = ScoresHybridRecommender(controller.URM_train, hyb2, ease1, user, user, user)
+    alpha = optuna_trial.suggest_float("alpha", 0.1, 0.5)
+    beta = optuna_trial.suggest_float("beta", 0.5, 0.9)
+    gamma = optuna_trial.suggest_float("gamma", 0.0, 0.01)
+
+    recom1.fit(alpha, beta, gamma, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
