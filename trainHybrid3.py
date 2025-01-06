@@ -50,7 +50,9 @@ p3 = P3alphaRecommender(controller.URM_train)
 p3.load_model(folder_path="_saved_models", file_name="p3alpha_train_f")
 
 user = UserKNNCFRecommender(controller.URM_train)
-user.load_model(folder_path="_saved_models", file_name="user_train_f")
+user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
+
+#user.load_model(folder_path="_saved_models", file_name="user_train_f")
 
 #items = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
 #items.fit(topK= 6, shrink= 693, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
