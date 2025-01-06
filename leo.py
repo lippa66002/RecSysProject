@@ -9,7 +9,8 @@ from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 import optuna
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 controller = ModelController()
-
+ease1 = EASE_R_Recommender(controller.URM_train)
+ease1.load_model(folder_path="_saved_models", file_name="easetrain")
 slim1 = SLIMElasticNetRecommender(controller.URM_train)
 slim1.fit(alpha=0.00022742003969239836, topK= 709, l1_ratio= 0.1488442906776265)
 stacked = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
@@ -19,8 +20,7 @@ bestrp3 = RP3betaRecommender(controller.URM_train)
 bestrp3.fit(topK= 12 , alpha = 0.25843, beta= 0.357834)
 hyb1 = HybridOptunable2(controller.URM_train)
 hyb1.fit(0.27959722573911727,slim1,slim2)
-ease1 = EASE_R_Recommender(controller.URM_train)
-ease1.load_model(folder_path="_saved_models", file_name="easetrain")
+
 dd,_ = controller.evaluator_test.evaluateRecommender(ease1)
 print(dd.loc[10]["MAP"])
 hyb2 = HybridOptunable2(controller.URM_train)
