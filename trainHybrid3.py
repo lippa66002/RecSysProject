@@ -1,5 +1,6 @@
 import optuna
 import pandas as pd
+import scipy.sparse as sps
 
 import DataHandler
 from ModelController import ModelController
@@ -33,22 +34,23 @@ slim.load_model(folder_path="_saved_models", file_name="SLIMtrain")
 #item = ItemKNNCFRecommender(controller.URM_train)
 #item.fit(similarity =  "cosine", topK =  8, shrink= 12)
 
-rp3 = RP3betaRecommender(controller.URM_train)
-rp3.load_model(folder_path="_saved_models", file_name="rp3train")
+stacked = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
+
+rp3 = RP3betaRecommender(stacked)
+rp3.load_model(folder_path="_saved_models", file_name="rp3_stacked3_f")
 #rp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
 #rp3.save_model(folder_path="_saved_models", file_name="rp3_train_f")
 
-easeR = EASE_R_Recommender(controller.URM_train)
-easeR.load_model(folder_path="_saved_models", file_name="easetrain3")
+#easeR = EASE_R_Recommender(controller.URM_train)
+#easeR.load_model(folder_path="_saved_models", file_name="easetrain3")
 #easeR.fit(topK= 32, l2_norm= 20.402285200199643, normalize_matrix= False)
 #slim.save_model(folder_path="_saved_models", file_name="ease_train_f")
 
 p3 = P3alphaRecommender(controller.URM_train)
 p3.load_model(folder_path="_saved_models", file_name="p3alpha_train_f")
 
-#user = UserKNNCFRecommender(controller.URM_train)
-#user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')
-#slim.save_model(folder_path="_saved_models", file_name="user_train_f")
+user = UserKNNCFRecommender(controller.URM_train)
+user.load_model(folder_path="_saved_models", file_name="user_train_f")
 
 #items = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
 #items.fit(topK= 6, shrink= 693, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
@@ -61,7 +63,7 @@ p3.load_model(folder_path="_saved_models", file_name="p3alpha_train_f")
 
 
 def objective_function_scores_3models(optuna_trial):
-    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, easeR, p3, slim)
+    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, user, p3, slim)
 
     x = optuna_trial.suggest_float("x", 0.0, 1.0)
     y = optuna_trial.suggest_float("y", 0.0, 1.0)
@@ -76,7 +78,7 @@ def objective_function_scores_3models(optuna_trial):
     return result_df.loc[10]["MAP"]
 
 def objective_function_scores_4models(optuna_trial):
-    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, easeR, p3, slim)
+    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, user, p3, slim)
 
     # Sample x, y, and z to calculate weights
     x = optuna_trial.suggest_float("x", 0.0, 1.0)
