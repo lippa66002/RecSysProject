@@ -1,17 +1,11 @@
 import optuna
 import scipy.sparse as sps
-from ModelController import ModelController
 
+from ModelController import ModelController
 from Optimize.SaveResults import SaveResults
-from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
-from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
-
-from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
-from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
-from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
@@ -28,7 +22,8 @@ stacked3 = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863
 #itemmm.fit(similarity= 'cosine', topK=5, shrink= 0)
 
 user = UserKNNCFRecommender(controller.URM_train)
-user.load_model(folder_path="_saved_models", file_name="user_train_f")
+user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
+#user.load_model(folder_path="_saved_models", file_name="user_train_f")
 
 #slim1 = SLIMElasticNetRecommender(stacked)
 #slim1.load_model(folder_path="_saved_models", file_name="SLIMstackedTrain2")
