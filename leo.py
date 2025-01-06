@@ -3,6 +3,7 @@ from Optimize.SaveResults import SaveResults
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
+from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.NonPersonalizedRecommender import TopPop
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
@@ -10,7 +11,10 @@ import scipy.sparse as sps
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 import optuna
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
+
 controller = ModelController()
+itemhyb= ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train,controller.ICM_all)
+itemhyb.fit(topK= 6, shrink= 167, similarity= 'asymmetric', normalize= False, feature_weighting= 'BM25', ICM_weight= 0.375006792830105)
 
 slim1 = SLIMElasticNetRecommender(controller.URM_train)
 slim1.load_model(folder_path="_saved_models", file_name="slim_train_f")
@@ -30,11 +34,11 @@ user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_
 
 
 def objective_function_scores_hybrid_1( optuna_trial):
-    print("user + hyb2")
+    print("itemhyb + hyb2")
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, ease1, hyb2, user, user, user)
+    recom1 = ScoresHybridRecommender(controller.URM_train, itemhyb, hyb2, user, user, user)
     alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
     recom1.fit(alpha, 1-alpha, 0, 0., 0)
 
