@@ -6,6 +6,7 @@ from Recommenders.KNN.ItemKNNCBFRecommender import ItemKNNCBFRecommender
 from Recommenders.KNN.ItemKNN_CFCBF_Hybrid_Recommender import ItemKNN_CFCBF_Hybrid_Recommender
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.NonPersonalizedRecommender import TopPop
+from Recommenders.SLIM.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 import scipy.sparse as sps
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
@@ -13,6 +14,8 @@ import optuna
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 controller = ModelController()
+
+
 itemhyb= ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train,controller.ICM_all)
 itemhyb.fit(topK= 6, shrink= 167, similarity= 'asymmetric', normalize= False, feature_weighting= 'BM25', ICM_weight= 0.375006792830105)
 
@@ -24,8 +27,7 @@ hyb2 = HybridOptunable2(controller.URM_train)
 hyb2.fit (0.24002684672441646,slim1,bestrp3)
 ease1 = EASE_R_Recommender(controller.URM_train)
 ease1.load_model(folder_path="_saved_models", file_name="easetrainll")
-top_pop = TopPop(controller.URM_boost)
-top_pop.fit()
+
 item = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
 item.fit(topK= 9, shrink= 956, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
 
@@ -34,16 +36,17 @@ user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_
 
 
 def objective_function_scores_hybrid_1( optuna_trial):
-    print("hyb2 + ease + user")
+    print("hyb2 + bpr")
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, hyb2, ease1, user, user, user)
-    alpha = optuna_trial.suggest_float("alpha", 0.2, 0.4)
-    beta = optuna_trial.suggest_float("beta", 0.4, 0.8)
-    gamma = optuna_trial.suggest_float("gamma", 0.0, 0.03)
+    recom1 = ScoresHybridRecommender(controller.URM_train, ease1, hyb2, user, itemhyb, user)
+    alpha = optuna_trial.suggest_float("alpha", 0.65, 0.68)
+    gamma = optuna_trial.suggest_float("gamma", 0.0, 0.007)
 
-    recom1.fit(alpha, beta, gamma, 0, 0)
+    delta = optuna_trial.suggest_float("delta", 0.0, 0.005)
+
+    recom1.fit(alpha, 1-alpha, gamma, delta, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -55,3 +58,4 @@ optuna_study.optimize(objective_function_scores_hybrid_1,
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
+#
