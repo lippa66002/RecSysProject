@@ -27,15 +27,15 @@ item.fit(topK= 9, shrink= 956, similarity= 'cosine', normalize= True, feature_we
 
 user = UserKNNCFRecommender(controller.URM_train)
 user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')
-alpha=0.689217356
+
 
 def objective_function_scores_hybrid_1( optuna_trial):
-    print("item + hyb2")
+    print("ease + hyb2")
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    recom1 = ScoresHybridRecommender(controller.URM_train, item, hyb2, user, user, user)
-    alpha = optuna_trial.suggest_float("alpha", 0, 0.1)
+    recom1 = ScoresHybridRecommender(controller.URM_train, ease1, hyb2, user, user, user)
+    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
     recom1.fit(alpha, 1-alpha, 0, 0., 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
