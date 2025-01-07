@@ -338,4 +338,4 @@ recommendations = [' '.join([str(item) for item in r]).strip() for r in recommen
 submission_df = pd.DataFrame({'user_id': users['user_id'].unique(), 'item_list': recommendations})
 
 
-submission_df.to_csv('recomm.csv', index=False)
+submission_df.to_csv('recomms.csv', index=False)
