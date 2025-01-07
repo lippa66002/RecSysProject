@@ -64,6 +64,32 @@ bestrp3.load_model(folder_path="_saved_models", file_name="rp3train")
 hyb_best = HybridOptunable2(controller.URM_train)
 hyb_best.fit(0.18923840370620948,hyb_slims,bestrp3)
 
+ials = IALSRecommender(controller.URM_train)
+ials.load_model(folder_path="_saved_models", file_name="IALS_train")
+
+def objective_function_scores_hybrid_f(optuna_trial):
+    # bpr = SLIM_BPR_Cython(self.URM_train)
+    # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
+    recom1 = HybridOptunable2(controller.URM_train)
+
+    alpha = optuna_trial.suggest_float("alpha", 0, 1)
+
+    recom1.fit(alpha, hyb_best, ials)
+
+    result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
+    return result_df.loc[10]["MAP"]
+
+
+optuna_study = optuna.create_study(direction="maximize")
+save_results = SaveResults()
+optuna_study.optimize(objective_function_scores_hybrid_f,
+                      callbacks=[save_results],
+                      n_trials=50)
+print(save_results.results_df)
+print(optuna_study.best_trial.params)
+
+"""
+
 hyb_fin = ScoresHybridRecommender(controller.URM_train, hyb_best, user, p3, easeR, p3)
 
 x = 0.9809789503691551
@@ -75,8 +101,7 @@ gamma = (1 - x) * (1 - y)
 
 hyb_fin.fit(alpha, beta, gamma, 0, 0)
 
-ials = IALSRecommender(controller.URM_train)
-ials.load_model(folder_path="_saved_models", file_name="IALS_train")
+
 
 
 
@@ -102,7 +127,7 @@ optuna_study.optimize(objective_function_scores_hybrid_6,
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
 
-
+"""
 
 
 
