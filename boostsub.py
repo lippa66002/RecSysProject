@@ -50,7 +50,7 @@ class XGBoostRerankerRecommender:
             recommendations.append(items[np.argsort(preds)[-cutoff:][::-1]].tolist())
 
         if return_scores:
-            rec, scores = hyb2.recommend(user_ids, cutoff=cutoff, return_scores=return_scores)
+            rec, scores = recom.recommend(user_ids, cutoff=cutoff, return_scores=return_scores)
             # useless scores
             return np.array(recommendations), scores
         return np.array(recommendations)
@@ -76,17 +76,16 @@ user = UserKNNCFRecommender(controller.URM_train)
 user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
 p3 = P3alphaRecommender(controller.URM_train)
 p3.fit(topK= 15, alpha= 0.5657433667229401, min_rating= 0, implicit= False, normalize_similarity= True)
-
 recom = ScoresHybridRecommender(controller.URM_train, hyb2, user, p3, p3, p3)
-
 x = 0.9809789503691551
 y = 0.3078230973689968
-
 alpha = x
 beta = y * (1 - x)
 gamma = (1 - x) * (1 - y)
-
 recom.fit(alpha, beta,gamma,0,0)
+
+dd,_ = controller.evaluator_test.evaluateRecommender(recom)
+print(dd.loc[10]["MAP"])
 
 
 
@@ -99,7 +98,7 @@ finaltrain.index.name='UserID'
 cutoff = 30
 
 for user_id in tqdm(range(n_users)):
-    recommendations = hyb2.recommend(user_id, cutoff = cutoff)
+    recommendations = recom.recommend(user_id, cutoff = cutoff)
     finaltrain.loc[user_id, "ItemID"] = recommendations
 
 finaltrain = finaltrain.explode("ItemID")
@@ -195,14 +194,14 @@ groups = finaltrain.groupby("UserID").size().values
 
 
 
-n_estimators = 500
-learning_rate = 1e-1
-reg_alpha = 1e-1
-reg_lambda = 1e-1
-max_depth = 5
-max_leaves = 32
+n_estimators = 51
+learning_rate = 0.0045569
+reg_alpha = 0.3528836310570613
+reg_lambda = 4.050032584246291e-05
+max_depth = 18
+max_leaves = 204
 grow_policy = "depthwise"
-objective = "map"  #"pairwise", "ndcg"
+objective = "rank:pairwise"  #"pairwise", "ndcg"
 booster = "gbtree"
 use_user_profile = False
 random_seed = None
@@ -218,8 +217,15 @@ XGB_model = XGBRanker(
     grow_policy = grow_policy,
     verbosity = 1, # 2 if self.verbose else 0,
     booster = booster,
-    # enable_categorical = True
+    gamma = 0.4206329828246236,
+    min_child_weight= 0.0012249868612667248,
+    subsample= 0.6918519508132545,
+    colsample_bytree= 0.44094900795628406
+
+
+
 )
+
 
 
 y_train = finaltrain["Label"]
@@ -273,7 +279,7 @@ user_recommendations_items = []
 user_recommendations_user_id = []
 
 for user_id in tqdm(range(n_users)):
-    recommendations = hyb2.recommend(user_id, cutoff=cutoff)
+    recommendations = recom.recommend(user_id, cutoff=cutoff)
 
     user_recommendations_items.extend(recommendations)
     user_recommendations_user_id.extend([user_id] * len(recommendations))
