@@ -40,7 +40,7 @@ def objective_function_scores_hybrid_1( optuna_trial):
     print("hyb3 + user")
     recom1 = ScoresHybridRecommender(controller.URM_train, hyb3, user, bestrp3, slim1, slim1)
 
-    alpha = optuna_trial.suggest_float("alpha", 0.9, 1.0)
+    alpha = optuna_trial.suggest_float("alpha", 0.99, 1.0)
 
 
 
