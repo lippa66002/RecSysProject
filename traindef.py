@@ -19,7 +19,6 @@ slim2 = SLIMElasticNetRecommender(controller.URM_train)
 slim2.load_model(folder_path="_saved_models", file_name="SLIMtrain")  #0.3588980025585651 slim1slim2 score,  0.7228086650480543 slim1slim2 optunable2
 bestrp3 = RP3betaRecommender(controller.URM_train)
 bestrp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
-bestitem = ItemKNNCFRecommender(controller.URM_train)
 itemmm = ItemKNNCFRecommender(controller.URM_train)
 itemmm.fit(similarity= 'tversky', topK= 5, shrink= 15, tversky_alpha= 0.0291003114865242, tversky_beta= 1.0501107741561788)
 hyb1 = HybridOptunable2(controller.URM_train)
@@ -66,7 +65,7 @@ def objective_function_scores_hybrid_6( optuna_trial):
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
-    recom1.fit(alpha,hyb2,bestitem)
+    recom1.fit(alpha,hyb2,itemmm)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
