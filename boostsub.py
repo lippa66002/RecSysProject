@@ -18,7 +18,7 @@ import scipy.sparse as sps
 import numpy as np
 
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
-from boost import XGBoostRerankerRecommender
+
 
 URM_all_dataframe = pd.read_csv(filepath_or_buffer="Data/data_train.csv",
                                 sep=",",
@@ -35,6 +35,29 @@ URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 controller = ModelController()
 
 
+class XGBoostRerankerRecommender:
+    def __init__(self, URM_train, XGB_model, df):
+        self.URM_train = URM_train
+        self.df = df
+        self.XGB_model = XGB_model
+
+    def recommend(self, user_ids, cutoff=10, return_scores=True, remove_seen_flag=True, remove_top_pop_flag=True,
+                  remove_custom_items_flag=False):
+        recommendations = []
+        for user_id in user_ids:
+            df_slice = self.df[self.df['UserID'] == user_id]
+            items = df_slice.ItemID.to_numpy()
+            preds = self.XGB_model.predict(df_slice)
+            recommendations.append(items[np.argsort(preds)[-cutoff:][::-1]].tolist())
+
+        if return_scores:
+            rec, scores = hyb2.recommend(user_ids, cutoff=cutoff, return_scores=return_scores)
+            # useless scores
+            return np.array(recommendations), scores
+        return np.array(recommendations)
+
+    def get_URM_train(self):
+        return self.URM_train
 stacked = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
 slim1 = SLIMElasticNetRecommender(stacked)
 slim1.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
