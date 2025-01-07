@@ -46,8 +46,6 @@ def objective_function_scores_hybrid_1( optuna_trial):
 
 
 
-
-
     recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
