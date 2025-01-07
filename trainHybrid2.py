@@ -84,13 +84,13 @@ def objective_function_scores_hybrid_6(optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
     #recom1 = HybridOptunable2(controller.URM_train)
-    recom1 = ScoresHybridRecommender(controller.URM_train, hyb_fin, ials, p3, easeR, p3)
+    recom = ScoresHybridRecommender(controller.URM_train, hyb_fin, ials, p3, easeR, p3)
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
 
-    recom1.fit(alpha, 1-alpha, 0, 0, 0)
+    recom.fit(alpha, 1-alpha, 0, 0, 0)
 
-    result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
+    result_df, _ = controller.evaluator_test.evaluateRecommender(recom)
     return result_df.loc[10]["MAP"]
 
 
