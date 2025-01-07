@@ -23,7 +23,7 @@ bestrp3 = RP3betaRecommender(controller.URM_train)
 bestrp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
 itemmm = ItemKNNCFRecommender(controller.URM_train)
 itemmm.fit(similarity= 'tversky', topK= 5, shrink= 15, tversky_alpha= 0.0291003114865242, tversky_beta= 1.0501107741561788)
-user = UserKNNCFRecommender(controller.URM_boost)
+user = UserKNNCFRecommender(controller.URM_train)
 user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')
 hyb1 = HybridOptunable2(controller.URM_train)
 hyb1.fit(0.7228086650480543,slim1,slim2)    #0.24821268574498187 hyb1bestrp3 hybridoptunable
