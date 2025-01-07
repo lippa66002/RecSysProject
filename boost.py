@@ -108,7 +108,7 @@ slimbpr = SLIM_BPR_Cython(controller.URM_boost)
 slimbpr.fit( topK= 20, learning_rate= 0.07235759859199255, lambda_i= 0.0026131161353345695, lambda_j= 0.0025413226707704894, symmetric= True, sgd_mode= 'adagrad')
 
 ials = IALSRecommender(controller.URM_boost)
-ials.load_model(folder_path="_saved_models", file_name="IALStrain")
+ials.load_model(folder_path="_saved_models", file_name="IALS_train")
 
 
 other_algorithms = {
