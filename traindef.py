@@ -53,6 +53,7 @@ print(optuna_study.best_trial.params)
 def objective_function_scores_hybrid_6( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
+    print("hyb1+rp3 hybridoptunable2")
     recom1 = HybridOptunable2(controller.URM_train)
 
     alpha = optuna_trial.suggest_float("alpha", 0, 1)
