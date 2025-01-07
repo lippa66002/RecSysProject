@@ -16,7 +16,6 @@ from xgboost import XGBRanker
 from tqdm import tqdm
 import scipy.sparse as sps
 import numpy as np
-
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
 
 
@@ -116,7 +115,7 @@ correct_recommendations = pd.DataFrame({"UserID": URM_test_coo.row,
 
 
 correct_recommendations
-#%%
+
 finaltrain = pd.merge(finaltrain, correct_recommendations, on=['UserID','ItemID'], how='left', indicator='Exist')
 
 
