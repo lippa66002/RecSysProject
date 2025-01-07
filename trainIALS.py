@@ -21,6 +21,6 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 controller = ModelController()
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 
-ials = IALSRecommender(URM_all)
+ials = IALSRecommender(controller.URM_boost)
 ials.fit(confidence_scaling= 'linear', num_factors=173, alpha= 6.7979092186218715, epsilon= 1.3000803763047268, reg=0.03413944416805373, init_std= 0.06581036009302164)
-ials.save_model(folder_path="_saved_models", file_name="IALSall")
+ials.save_model(folder_path="_saved_models", file_name="IALSboost")
