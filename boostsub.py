@@ -57,6 +57,7 @@ class XGBoostRerankerRecommender:
 
     def get_URM_train(self):
         return self.URM_train
+
 stacked = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
 slim1 = SLIMElasticNetRecommender(stacked)
 slim1.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
@@ -114,7 +115,6 @@ correct_recommendations = pd.DataFrame({"UserID": URM_test_coo.row,
 
 
 
-correct_recommendations
 
 finaltrain = pd.merge(finaltrain, correct_recommendations, on=['UserID','ItemID'], how='left', indicator='Exist')
 
