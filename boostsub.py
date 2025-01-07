@@ -238,26 +238,26 @@ XGB_model.fit(
 )
 
 
-stacked = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
+stacked = sps.vstack([0.6814451172353111 * URM_all, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
 slim1 = SLIMElasticNetRecommender(stacked)
-slim1.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
-slim2 = SLIMElasticNetRecommender(controller.URM_train)
-slim2.load_model(folder_path="_saved_models", file_name="SLIMtrain")  #0.3588980025585651 slim1slim2 score,  0.7228086650480543 slim1slim2 optunable2
-bestrp3 = RP3betaRecommender(controller.URM_train)
+slim1.load_model(folder_path="_saved_models", file_name="SLIMstackedAll1")
+slim2 = SLIMElasticNetRecommender(URM_all)
+slim2.load_model(folder_path="_saved_models", file_name="SLIM_ElasticNetAll")  #0.3588980025585651 slim1slim2 score,  0.7228086650480543 slim1slim2 optunable2
+bestrp3 = RP3betaRecommender(URM_all)
 bestrp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
-itemmm = ItemKNNCFRecommender(controller.URM_train)
+itemmm = ItemKNNCFRecommender(URM_all)
 itemmm.fit(similarity= 'tversky', topK= 5, shrink= 15, tversky_alpha= 0.0291003114865242, tversky_beta= 1.0501107741561788)
-hyb1 = HybridOptunable2(controller.URM_train)
+hyb1 = HybridOptunable2(URM_all)
 hyb1.fit(0.7228086650480543,slim1,slim2)    #0.24821268574498187 hyb1bestrp3 hybridoptunable
-hyb2 = HybridOptunable2(controller.URM_train)
+hyb2 = HybridOptunable2(URM_all)
 hyb2.fit(0.24821268574498187,hyb1,bestrp3)
 
-user = UserKNNCFRecommender(controller.URM_train)
+user = UserKNNCFRecommender(URM_all)
 user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
-p3 = P3alphaRecommender(controller.URM_train)
+p3 = P3alphaRecommender(URM_all)
 p3.fit(topK= 15, alpha= 0.5657433667229401, min_rating= 0, implicit= False, normalize_similarity= True)
 
-recom = ScoresHybridRecommender(controller.URM_train, hyb2, user, p3, p3, p3)
+recom = ScoresHybridRecommender(URM_all, hyb2, user, p3, p3, p3)
 
 x = 0.9809789503691551
 y = 0.3078230973689968
