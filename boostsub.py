@@ -50,7 +50,7 @@ class XGBoostRerankerRecommender:
             recommendations.append(items[np.argsort(preds)[-cutoff:][::-1]].tolist())
 
         if return_scores:
-            rec, scores = recom.recommend(user_ids, cutoff=cutoff, return_scores=return_scores)
+            rec, scores = hyb2.recommend(user_ids, cutoff=cutoff, return_scores=return_scores)
             # useless scores
             return np.array(recommendations), scores
         return np.array(recommendations)
@@ -72,19 +72,9 @@ hyb1.fit(0.7228086650480543,slim1,slim2)    #0.24821268574498187 hyb1bestrp3 hyb
 hyb2 = HybridOptunable2(controller.URM_train)
 hyb2.fit(0.24821268574498187,hyb1,bestrp3)
 
-user = UserKNNCFRecommender(controller.URM_train)
-user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
-p3 = P3alphaRecommender(controller.URM_train)
-p3.fit(topK= 15, alpha= 0.5657433667229401, min_rating= 0, implicit= False, normalize_similarity= True)
-recom = ScoresHybridRecommender(controller.URM_train, hyb2, user, p3, p3, p3)
-x = 0.9809789503691551
-y = 0.3078230973689968
-alpha = x
-beta = y * (1 - x)
-gamma = (1 - x) * (1 - y)
-recom.fit(alpha, beta,gamma,0,0)
 
-dd,_ = controller.evaluator_test.evaluateRecommender(recom)
+
+dd,_ = controller.evaluator_test.evaluateRecommender(hyb2)
 print(dd.loc[10]["MAP"])
 
 
@@ -98,7 +88,7 @@ finaltrain.index.name='UserID'
 cutoff = 30
 
 for user_id in tqdm(range(n_users)):
-    recommendations = recom.recommend(user_id, cutoff = cutoff)
+    recommendations = hyb2.recommend(user_id, cutoff = cutoff)
     finaltrain.loc[user_id, "ItemID"] = recommendations
 
 finaltrain = finaltrain.explode("ItemID")
@@ -257,21 +247,7 @@ hyb1.fit(0.7228086650480543,slim1,slim2)    #0.24821268574498187 hyb1bestrp3 hyb
 hyb2 = HybridOptunable2(URM_all)
 hyb2.fit(0.24821268574498187,hyb1,bestrp3)
 
-user = UserKNNCFRecommender(URM_all)
-user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
-p3 = P3alphaRecommender(URM_all)
-p3.fit(topK= 15, alpha= 0.5657433667229401, min_rating= 0, implicit= False, normalize_similarity= True)
 
-recom = ScoresHybridRecommender(URM_all, hyb2, user, p3, p3, p3)
-
-x = 0.9809789503691551
-y = 0.3078230973689968
-
-alpha = x
-beta = y * (1 - x)
-gamma = (1 - x) * (1 - y)
-
-recom.fit(alpha, beta,gamma,0,0)
 
 n_users, n_items = URM_all.shape
 
@@ -279,7 +255,7 @@ user_recommendations_items = []
 user_recommendations_user_id = []
 
 for user_id in tqdm(range(n_users)):
-    recommendations = recom.recommend(user_id, cutoff=cutoff)
+    recommendations = hyb2.recommend(user_id, cutoff=cutoff)
 
     user_recommendations_items.extend(recommendations)
     user_recommendations_user_id.extend([user_id] * len(recommendations))
