@@ -8,6 +8,7 @@ from Optimize.SaveResults import SaveResults
 from Recommenders.EASE_R.EASE_R_Recommender import EASE_R_Recommender
 from Recommenders.GraphBased.P3alphaRecommender import P3alphaRecommender
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
+from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
@@ -25,16 +26,21 @@ ICM = pd.read_csv(filepath_or_buffer="Data/data_ICM_metadata.csv",
 URM_all, ICM_all = DataHandler.create_urm_icm(URM_all_dataframe, ICM)
 controller = ModelController()
 
-slim = SLIMElasticNetRecommender(controller.URM_train)
-slim.load_model(folder_path="_saved_models", file_name="SLIMtrain")
+stacked = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
+stacked2 = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
+
+
+slim_t = SLIMElasticNetRecommender(controller.URM_train)
+slim_t.load_model(folder_path="_saved_models", file_name="SLIMtrain")
+
+slim_s = SLIMElasticNetRecommender(stacked2)
+slim_s.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
 
 #bpr = SLIM_BPR_Cython(controller.URM_train)
 #bpr.fit(topK =  11, learning_rate =  0.04193849345153912, lambda_i=  0.009876208709609856, lambda_j= 0.00044296738036044263, symmetric =  True, sgd_mode =  'adagrad')
 
 #item = ItemKNNCFRecommender(controller.URM_train)
 #item.fit(similarity =  "cosine", topK =  8, shrink= 12)
-
-stacked = sps.vstack([0.8392863849420211 * controller.URM_train, (1 - 0.8392863849420211) * controller.ICM_all.T]).tocsr()
 
 rp3 = RP3betaRecommender(stacked)
 rp3.load_model(folder_path="_saved_models", file_name="rp3_stacked3_f")
@@ -60,8 +66,52 @@ user.fit(topK= 995, shrink= 398, similarity= 'cosine', normalize= True, feature_
 # hyb = ItemKNN_CFCBF_Hybrid_Recommender(controller.URM_train, controller.ICM_all)
 # hyb.fit(topK =  6, shrink =  167, similarity =  'asymmetric', normalize =  False, feature_weighting =  'BM25', ICM_weight =  0.375006792830105)
 
+hyb_slims = HybridOptunable2(controller.URM_train)
+hyb_slims.fit(0.27959722573911727,slim_t,slim_s)
+
+bestrp3 = RP3betaRecommender(controller.URM_train)
+bestrp3.load_model(folder_path="_saved_models", file_name="rp3train")
+
+hyb_best = HybridOptunable2(controller.URM_train)
+hyb_best.fit(0.18923840370620948,hyb_slims,bestrp3)
+
+
+
+def objective_function_scores_3models(optuna_trial):
+    recom = ScoresHybridRecommender(controller.URM_train, hyb_best, user, p3, easeR, p3)
+
+    x = optuna_trial.suggest_float("x", 0.0, 1.0)
+    y = optuna_trial.suggest_float("y", 0.0, 1.0)
+
+    alpha = x
+    beta = y * (1 - x)
+    gamma = (1 - x) * (1 - y)
+
+    recom.fit(alpha, beta, gamma, 0, 0)
+
+    result_df, _ = controller.evaluator_test.evaluateRecommender(recom)
+    return result_df.loc[10]["MAP"]
+
+def objective_function_scores_4models(optuna_trial):
+    recom = ScoresHybridRecommender(controller.URM_train, hyb_best, user, p3, easeR, p3)
+
+    # Sample x, y, and z to calculate weights
+    x = optuna_trial.suggest_float("x", 0.0, 1.0)
+    y = optuna_trial.suggest_float("y", 0.0, 1.0)
+    z = optuna_trial.suggest_float("z", 0.0, 1.0)
+
+    alpha = x
+    beta = y * (1 - x)
+    gamma = z * (1 - x) * (1 - y)
+    delta = (1 - x) * (1 - y) * (1 - z)
+
+    recom.fit(alpha, beta, gamma, delta, 0)
+
+    result_df, _ = controller.evaluator_test.evaluateRecommender(recom)
+    return result_df.loc[10]["MAP"]
+
 def objective_function_scores_5models(optuna_trial):
-    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, easeR, user, p3)
+    recom = ScoresHybridRecommender(controller.URM_train, hyb_best, user, p3, easeR, p3)
 
     # Sample x, y, and z to calculate weights
     x = optuna_trial.suggest_float("x", 0.0, 1.0)
@@ -80,49 +130,6 @@ def objective_function_scores_5models(optuna_trial):
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom)
     return result_df.loc[10]["MAP"]
 
-optuna_study = optuna.create_study(direction="maximize")
-save_results = SaveResults()
-optuna_study.optimize(objective_function_scores_5models,
-                      callbacks=[save_results],
-                      n_trials=50)
-print(save_results.results_df)
-print(optuna_study.best_trial.params)
-
-
-"""
-
-def objective_function_scores_3models(optuna_trial):
-    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, user, p3, slim)
-
-    x = optuna_trial.suggest_float("x", 0.0, 1.0)
-    y = optuna_trial.suggest_float("y", 0.0, 1.0)
-
-    alpha = x
-    beta = y * (1 - x)
-    gamma = (1 - x) * (1 - y)
-
-    recom.fit(alpha, beta, gamma, 0, 0)
-
-    result_df, _ = controller.evaluator_test.evaluateRecommender(recom)
-    return result_df.loc[10]["MAP"]
-
-def objective_function_scores_4models(optuna_trial):
-    recom = ScoresHybridRecommender(controller.URM_train, slim, rp3, user, p3, slim)
-
-    # Sample x, y, and z to calculate weights
-    x = optuna_trial.suggest_float("x", 0.0, 1.0)
-    y = optuna_trial.suggest_float("y", 0.0, 1.0)
-    z = optuna_trial.suggest_float("z", 0.0, 1.0)
-
-    alpha = x
-    beta = y * (1 - x)
-    gamma = z * (1 - x) * (1 - y)
-    delta = (1 - x) * (1 - y) * (1 - z)
-
-    recom.fit(alpha, beta, gamma, delta, 0)
-
-    result_df, _ = controller.evaluator_test.evaluateRecommender(recom)
-    return result_df.loc[10]["MAP"]
 
 
 optuna_study = optuna.create_study(direction="maximize")
@@ -138,6 +145,15 @@ print("now try 4 models")
 optuna_study = optuna.create_study(direction="maximize")
 save_results = SaveResults()
 optuna_study.optimize(objective_function_scores_4models,
+                      callbacks=[save_results],
+                      n_trials=50)
+print(save_results.results_df)
+print(optuna_study.best_trial.params)
+
+"""
+optuna_study = optuna.create_study(direction="maximize")
+save_results = SaveResults()
+optuna_study.optimize(objective_function_scores_5models,
                       callbacks=[save_results],
                       n_trials=50)
 print(save_results.results_df)
