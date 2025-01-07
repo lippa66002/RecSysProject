@@ -124,7 +124,7 @@ item_cf.fit(similarity= 'tversky', topK= 5, shrink= 15, tversky_alpha= 0.0291003
 
 
 item_cbf = ItemKNNCBFRecommender(controller.URM_train, controller.ICM_all)
-item_cbf.fit()
+item_cbf.fit(topK= 6, shrink= 693, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
 
 user = UserKNNCFRecommender(controller.URM_train)
 user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')
@@ -274,7 +274,7 @@ item_cf.fit(similarity= 'tversky', topK= 5, shrink= 15, tversky_alpha= 0.0291003
 
 
 item_cbf = ItemKNNCBFRecommender(URM_all, controller.ICM_all)
-item_cbf.fit()
+item_cbf.fit(topK= 6, shrink= 693, similarity= 'cosine', normalize= True, feature_weighting= 'BM25')
 
 user = UserKNNCFRecommender(URM_all)
 user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')
