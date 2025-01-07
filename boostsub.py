@@ -315,10 +315,10 @@ finrec = finrec.rename(columns = {"index": "UserID"})
 
 
 
-item_popularity = np.ediff1d(sps.csc_matrix(controller.URM_train).indptr)
+item_popularity = np.ediff1d(sps.csc_matrix(URM_all).indptr)
 finrec['item_popularity'] = item_popularity[finrec["ItemID"].values.astype(int)]
 
-user_popularity = np.ediff1d(sps.csr_matrix(controller.URM_train).indptr)
+user_popularity = np.ediff1d(sps.csr_matrix(URM_all).indptr)
 finrec['user_profile_len'] = user_popularity[finrec["UserID"].values.astype(int)]
 
 
