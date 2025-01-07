@@ -16,7 +16,6 @@ slim1 = SLIMElasticNetRecommender(stacked)
 slim1.load_model(folder_path="_saved_models", file_name="SLIMstackedTrainval1")
 slim2 = SLIMElasticNetRecommender(controller.URM_train)
 slim2.load_model(folder_path="_saved_models", file_name="SLIMtrain")  #0.3588980025585651 slim1slim2 score,  0.7228086650480543 slim1slim2 optunable2
-rp3 = RP3betaRecommender(controller.URM_train)
 bestrp3 = RP3betaRecommender(controller.URM_train)
 bestrp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
 
@@ -25,7 +24,7 @@ def objective_function_scores_hybrid_1( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
     print("slim1+slim2+rp3 score con valori liberi di tutti")
-    recom1 = ScoresHybridRecommender(controller.URM_train, slim1, slim2, rp3, slim1, slim1)
+    recom1 = ScoresHybridRecommender(controller.URM_train, slim1, slim2, bestrp3, slim1, slim1)
 
     gamma = optuna_trial.suggest_float("gamma", 0.0, 1.0)
     alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
