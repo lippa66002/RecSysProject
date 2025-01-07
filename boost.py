@@ -219,7 +219,7 @@ slimbpr.fit( topK= 20, learning_rate= 0.07235759859199255, lambda_i= 0.002613116
 )
 
 ials = IALSRecommender(controller.URM_train)
-ials.load_model(folder_path="_saved_models", file_name="IALStrain")
+ials.load_model(folder_path="_saved_models", file_name="IALS_train")
 other_algorithms_tr = {
     "top_pop": top_pop,
     "item_cf": item_cf,
