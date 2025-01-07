@@ -5,11 +5,13 @@ from Optimize.SaveResults import SaveResults
 from Recommenders.GraphBased.RP3betaRecommender import RP3betaRecommender
 from Recommenders.HybridOptunable2 import HybridOptunable2
 from Recommenders.KNN.ItemKNNCFRecommender import ItemKNNCFRecommender
+from Recommenders.KNN.UserKNNCFRecommender import UserKNNCFRecommender
 from Recommenders.MatrixFactorization.IALSRecommender import IALSRecommender
 from Recommenders.SLIM.SLIMElasticNetRecommender import SLIMElasticNetRecommender
 import optuna
 
 from Recommenders.ScoresHybridRecommender import ScoresHybridRecommender
+
 controller = ModelController()
 
 stacked = sps.vstack([0.6814451172353111 * controller.URM_train, (1 - 0.6814451172353111) * controller.ICM_all.T]).tocsr()
@@ -21,22 +23,24 @@ bestrp3 = RP3betaRecommender(controller.URM_train)
 bestrp3.fit(topK= 18, beta= 0.2449115248846201, alpha= 0.34381573319072084)
 itemmm = ItemKNNCFRecommender(controller.URM_train)
 itemmm.fit(similarity= 'tversky', topK= 5, shrink= 15, tversky_alpha= 0.0291003114865242, tversky_beta= 1.0501107741561788)
+user = UserKNNCFRecommender(controller.URM_boost)
+user.fit(topK= 1000, shrink= 16, similarity ='cosine', normalize= True, feature_weighting= 'BM25')
 hyb1 = HybridOptunable2(controller.URM_train)
 hyb1.fit(0.7228086650480543,slim1,slim2)    #0.24821268574498187 hyb1bestrp3 hybridoptunable
 hyb2 = HybridOptunable2(controller.URM_train)
 hyb2.fit(0.24821268574498187,hyb1,bestrp3)    #0.24821268574498187 hyb1bestrp3 hybridoptunable
+dd, _ = controller.evaluator_test.evaluateRecommender(hyb2)
+hyb3 = HybridOptunable2(controller.URM_train)
+hyb3.fit(0.036352595657286435,hyb1,itemmm)    #0.24821268574498187 hyb1bestrp3 hybridoptunable
 
-'''
 def objective_function_scores_hybrid_1( optuna_trial):
 
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
-    print("slim1+slim2+rp3 score con valori liberi di tutti")
-    recom1 = ScoresHybridRecommender(controller.URM_train, slim1, slim2, bestrp3, slim1, slim1)
+    print("hyb3 + user")
+    recom1 = ScoresHybridRecommender(controller.URM_train, hyb3, user, bestrp3, slim1, slim1)
 
-    gamma = optuna_trial.suggest_float("gamma", 0.0, 1.0)
-    alpha = optuna_trial.suggest_float("alpha", 0.0, 1.0)
-    beta = optuna_trial.suggest_float("beta", 0.0, 1.0)
+    alpha = optuna_trial.suggest_float("alpha", 0.9, 1.0)
 
 
 
@@ -44,7 +48,7 @@ def objective_function_scores_hybrid_1( optuna_trial):
 
 
 
-    recom1.fit(alpha, beta, gamma, 0, 0)
+    recom1.fit(alpha, 1-alpha, 0, 0, 0)
 
     result_df, _ = controller.evaluator_test.evaluateRecommender(recom1)
     return result_df.loc[10]["MAP"]
@@ -55,8 +59,8 @@ optuna_study.optimize(objective_function_scores_hybrid_1,
                               n_trials=200)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
-'''
 
+'''
 def objective_function_scores_hybrid_6( optuna_trial):
     # bpr = SLIM_BPR_Cython(self.URM_train)
     # bpr.load_model(folder_path="_saved_models", file_name="SLIM_BPR_Recommender_train")
@@ -78,3 +82,4 @@ optuna_study.optimize(objective_function_scores_hybrid_6,
                       n_trials=50)
 print(save_results.results_df)
 print(optuna_study.best_trial.params)
+'''
